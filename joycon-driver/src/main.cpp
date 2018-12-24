@@ -66,6 +66,7 @@ unsigned char buf[65];
 int res = 0;
 int lcounter = 0;
 int rcounter = 0;
+bool started = false;
 
 // sio:
 sio::client myClient;
@@ -1720,7 +1721,7 @@ init_start:
 
 	printf("Done.\n");
 
-
+	started = true;
 
 
 }
@@ -2055,7 +2056,9 @@ int MyApp::OnExit() {
 }
 
 void MyApp::onIdle(wxIdleEvent& evt) {
-	pollLoop();
+	if (started) {
+		pollLoop();
+	}
 }
 
 TestGLContext& MyApp::GetContext(wxGLCanvas *canvas, bool useStereo) {
@@ -2477,7 +2480,9 @@ void TestGLCanvas::OnKeyDown(wxKeyEvent& event) {
 void TestGLCanvas::OnSpinTimer(wxTimerEvent& WXUNUSED(event)) {
 	//Spin(tracker.relX, tracker.relY);
 	Refresh(false);
-	pollLoop();
+	if (started) {
+		pollLoop();
+	}
 }
 
 wxString glGetwxString(GLenum name) {
