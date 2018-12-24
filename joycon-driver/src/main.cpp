@@ -64,6 +64,8 @@ MouseController MC;
 JOYSTICK_POSITION_V2 iReport; // The structure that holds the full position data
 unsigned char buf[65];
 int res = 0;
+int lcounter = 0;
+int rcounter = 0;
 
 // sio:
 sio::client myClient;
@@ -1221,11 +1223,14 @@ init_start:
 	}
 
 	if (settings.combineJoyCons) {
-		int counter = 0;
 		for (int i = 0; i < joycons.size(); ++i) {
-			joycons[i].vJoyNumber = (counter/2)+1;
-			joycons[i].deviceNumber = (counter % 2 ? 1 : 0);
-			counter++;
+			if (joycons[i].left_right == 1) {
+				joycons[i].vJoyNumber = ++lcounter;
+				joycons[i].deviceNumber = 0;
+			} else if (joycons[i].left_right == 2) {
+				joycons[i].vJoyNumber = ++rcounter;
+				joycons[i].deviceNumber = 1;
+			}
 		}
 	} else {
 		for (int i = 0; i < joycons.size(); ++i) {
