@@ -954,7 +954,20 @@ void pollLoop() {
 
 
 		//hid_read(jc->handle, buf, 0x40);
-		hid_read_timeout(jc->handle, buf, 0x40, 20);
+		int read = hid_read_timeout(jc->handle, buf, 0x40, 20);
+		if (read == -1) {
+			printf("\nOops! Lost joycon %c: %ls\n", L_OR_R(jc->left_right), jc->serial);
+			hid_close(jc->handle);
+			jc->handle = nullptr;
+			if (jc->left_right == 1) {
+				--lcounter;
+			} if (jc->left_right == 2) {
+				--rcounter;
+			}
+			continue;
+		} else if (read < 0x40) {
+			continue;
+		}
 
 		// flush the queue
 		while (hid_read(jc->handle, buf, 0x40) > 0);
