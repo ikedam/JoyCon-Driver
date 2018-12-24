@@ -222,12 +222,15 @@ public:
 		}
 	}
 
-	void hid_exchange(hid_device *handle, unsigned char *buf, int len) {
-		if (!handle) return;
+	int hid_exchange(hid_device *handle, unsigned char *buf, int len) {
+		if (!handle) return -1;
 
 		int res;
 
 		res = hid_write(handle, buf, len);
+		if (res < 0) {
+			return -1;
+		}
 
 		//if (res < 0) {
 		//	printf("Number of bytes written was < 0!\n");
@@ -239,16 +242,21 @@ public:
 		//hid_set_nonblocking(handle, 1);
 
 		res = hid_read(handle, buf, 0x40);
+		if (res < 0) {
+			return -1;
+		}
 
 		//if (res < 1) {
 		//	printf("Number of bytes read was < 1!\n");
 		//} else {
 		//	printf("%d bytes read.\n", res);
 		//}
+
+		return 0;
 	}
 
 
-	void send_command(int command, uint8_t *data, int len) {
+	int send_command(int command, uint8_t *data, int len) {
 		unsigned char buf[0x40];
 		memset(buf, 0, 0x40);
 
@@ -263,14 +271,16 @@ public:
 			memcpy(buf + (bluetooth ? 0x1 : 0x9), data, len);
 		}
 
-		hid_exchange(this->handle, buf, len + (bluetooth ? 0x1 : 0x9));
+		int ret = hid_exchange(this->handle, buf, len + (bluetooth ? 0x1 : 0x9));
 
 		if (data) {
 			memcpy(data, buf, 0x40);
 		}
+
+		return ret;
 	}
 
-	void send_subcommand(int command, int subcommand, uint8_t *data, int len) {
+	int send_subcommand(int command, int subcommand, uint8_t *data, int len) {
 		unsigned char buf[0x40];
 		memset(buf, 0, 0x40);
 
@@ -293,11 +303,13 @@ public:
 			memcpy(buf + 10, data, len);
 		}
 
-		send_command(command, buf, 10 + len);
+		int ret = send_command(command, buf, 10 + len);
 
 		if (data) {
 			memcpy(data, buf, 0x40); //TODO
 		}
+
+		return ret;
 	}
 
 	void rumble(int frequency, int intensity) {
@@ -474,17 +486,26 @@ public:
 
 
 		// set blocking to ensure command is recieved:
-		hid_set_nonblocking(this->handle, 0);
+		if (hid_set_nonblocking(this->handle, 0) < 0) {
+			printf("Failed to set to blocking: %ls\n", hid_error(this->handle));
+			return -1;
+		}
 
 		// Enable vibration
 		printf("Enabling vibration...\n");
 		buf[0] = 0x01; // Enabled
-		send_subcommand(0x1, 0x48, buf, 1);
+		if (send_subcommand(0x1, 0x48, buf, 1) < 0) {
+			printf("Failed to enable vibration: %ls\n", hid_error(this->handle));
+			return -1;
+		}
 
 		// Enable IMU data
 		printf("Enabling IMU data...\n");
 		buf[0] = 0x01; // Enabled
-		send_subcommand(0x01, 0x40, buf, 1);
+		if (send_subcommand(0x01, 0x40, buf, 1) < 0) {
+			printf("Failed to enable IMU data: %ls\n", hid_error(this->handle));
+			return -1;
+		}
 
 
 		// Set input report mode (to push at 60hz)
@@ -497,7 +518,10 @@ public:
 		// 31	NFC mode. Pushes large packets @60Hz
 		printf("Set input report mode to 0x30...\n");
 		buf[0] = 0x30;
-		send_subcommand(0x01, 0x03, buf, 1);
+		if (send_subcommand(0x01, 0x03, buf, 1) < 0) {
+			printf("Failed to set mode: %ls\n", hid_error(this->handle));
+			return -1;
+		}
 
 		// @CTCaer
 
@@ -518,13 +542,18 @@ public:
 		memset(stick_cal_y_r, 0, sizeof(stick_cal_y_r));
 
 
-		get_spi_data(0x6020, 0x18, factory_sensor_cal);
-		get_spi_data(0x603D, 0x12, factory_stick_cal);
-		get_spi_data(0x6080, 0x6, sensor_model);
-		get_spi_data(0x6086, 0x12, stick_model);
-		get_spi_data(0x6098, 0x12, &stick_model[0x12]);
-		get_spi_data(0x8010, 0x16, user_stick_cal);
-		get_spi_data(0x8026, 0x1A, user_sensor_cal);
+		if (
+			get_spi_data(0x6020, 0x18, factory_sensor_cal) < 0
+			|| get_spi_data(0x603D, 0x12, factory_stick_cal) < 0
+			|| get_spi_data(0x6080, 0x6, sensor_model) < 0
+			|| get_spi_data(0x6086, 0x12, stick_model) < 0
+			|| get_spi_data(0x6098, 0x12, &stick_model[0x12]) < 0
+			|| get_spi_data(0x8010, 0x16, user_stick_cal) < 0
+			|| get_spi_data(0x8026, 0x1A, user_sensor_cal) < 0
+		) {
+			printf("Failed to get calibrations: %ls\n", hid_error(this->handle));
+			return -1;
+		}
 
 
 		// get stick calibration data:
@@ -837,8 +866,16 @@ public:
 			}
 
 			res = hid_write(handle, buf, sizeof(*hdr) + sizeof(*pkt));
+			if (res < 0) {
+				printf("Failed to write spi command: %ls\n", hid_error(handle));
+				return -1;
+			}
 
 			res = hid_read(handle, buf, sizeof(buf));
+			if (res < 0) {
+				printf("Failed to read spi command: %ls\n", hid_error(handle));
+				return -1;
+			}
 
 			if ((*(uint16_t*)&buf[0xD] == 0x1090) && (*(uint32_t*)&buf[0xF] == offset)) {
 				break;

@@ -1190,7 +1190,21 @@ void pollLoop() {
 				}
 			}
 			printf("Initializing joycon %c: %ls\n", L_OR_R(it->left_right), it->serial);
-			it->init_bt();
+			if (it->init_bt() < 0) {
+				printf(
+					"\nOops! Failed to init joycon %c: %ls\n",
+					L_OR_R(it->left_right),
+					it->serial
+				);
+				hid_close(it->handle);
+				it->handle = nullptr;
+				if (it->left_right == 1) {
+					--lcounter;
+				} if (it->left_right == 2) {
+					--rcounter;
+				}
+				continue;
+			}
 			it->set_led();
 			it->rumble(100, 1);
 			Sleep(20);
@@ -1316,7 +1330,20 @@ init_start:
 		}
 	} else {
 		for (int i = 0; i < joycons.size(); ++i) {
-			joycons[i].init_bt();
+			if (joycons[i].init_bt() < 0) {
+				printf(
+					"Oops! Failed to init joycon %c: %ls\n",
+					L_OR_R(joycons[i].left_right),
+					joycons[i].serial
+				);
+				hid_close(joycons[i].handle);
+				joycons[i].handle = nullptr;
+				if (joycons[i].left_right == 1) {
+					--lcounter;
+				} if (joycons[i].left_right == 2) {
+					--rcounter;
+				}
+			}
 		}
 	}
 
