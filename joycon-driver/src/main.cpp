@@ -292,7 +292,7 @@ void handle_input(Joycon *jc, uint8_t *packet, int len) {
 			jc->CalcAnalogStick();
 		}
 
-		jc->battery = (stick_data[1] & 0xF0) >> 4;
+		jc->battery = (packet[2] & 0xF0) >> 4;
 		//printf("JoyCon battery: %d\n", jc->battery);
 
 		// Accelerometer:
