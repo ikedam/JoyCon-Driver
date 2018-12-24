@@ -2283,6 +2283,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 
 void MainFrame::onStart(wxCommandEvent&) {
 	setupConsole("Debug");
+	this->Hide();
 	if (settings.gyroWindow) {
 		new MyFrame();
 	}
