@@ -212,7 +212,7 @@ public:
 		this->serial = _wcsdup(dev->serial_number);
 
 		//printf("Found joycon %c %i: %ls %s\n", L_OR_R(this->left_right), joycons.size(), this->serial, dev->path);
-		printf("Found joycon %c: %ls %s\n", L_OR_R(this->left_right), this->serial, dev->path);
+		printf("\nFound joycon %c: %ls %s\n", L_OR_R(this->left_right), this->serial, dev->path);
 		this->handle = hid_open_path(dev->path);
 
 

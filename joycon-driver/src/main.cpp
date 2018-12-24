@@ -1134,6 +1134,37 @@ void pollLoop() {
 		}
 	}
 
+	// Status
+	{
+		float x = 0;
+		float y = 0;
+		float rx = 0;
+		float ry = 0;
+		int batteryL = 0;
+		int batteryR = 0;
+
+		for (int i = 0; i < joycons.size(); ++i) {
+			if (joycons[i].left_right == 1) {
+				x = joycons[i].stick.CalX;
+				y = joycons[i].stick.CalY;
+				batteryL = 25 * joycons[i].battery / 2;
+			} else if (joycons[i].left_right == 2) {
+				rx = joycons[i].stick.CalX;
+				ry = joycons[i].stick.CalY;
+				batteryR = 25 * joycons[i].battery / 2;
+			}
+		}
+		printf(
+			"\rLeft: (%5.2f, %5.2f) Right: (%5.2f, %5.2f) Battery: L %3d %%, R %3d %%",
+			x,
+			y,
+			rx,
+			ry,
+			batteryL,
+			batteryR
+		);
+	}
+
 	// Re-detection
 	if (lcounter != rcounter || lcounter == 0) {
 		hid_device_info* devs = hid_enumerate(JOYCON_VENDOR, 0x0);
@@ -1174,7 +1205,7 @@ void pollLoop() {
 				}
 
 				// Found lost one!
-				printf("Found lost joycon %c: %ls %s\n", L_OR_R(it->left_right), cur_dev->serial_number, cur_dev->path);
+				printf("\nFound lost joycon %c: %ls %s\n", L_OR_R(it->left_right), cur_dev->serial_number, cur_dev->path);
 				it->handle = hid_open_path(cur_dev->path);
 
 				if (it->handle == nullptr) {
@@ -1349,6 +1380,7 @@ init_start:
 
 	// initial poll to get battery data:
 	pollLoop();
+	printf("\n");
 	for (int i = 0; i < joycons.size(); ++i) {
 		printf("battery level: %u\n", joycons[i].battery);
 	}
