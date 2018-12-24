@@ -2309,7 +2309,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 	SetClientSize(350, 400);
 	Show();
 
-	checkForUpdate();
+	// checkForUpdate();
 }
 
 
