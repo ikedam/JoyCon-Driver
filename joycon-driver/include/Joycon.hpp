@@ -826,12 +826,37 @@ public:
 		// Interpolate zone between deadzones
 		float mag = sqrtf(x_f*x_f + y_f*y_f);
 		if (mag > deadZoneCenter) {
-			// scale such that output magnitude is in the range [0.0f, 1.0f]
+			// scale to fit the coordinates on the circle to that on the square.
 			float legalRange = 1.0f - deadZoneOuter - deadZoneCenter;
 			float normalizedMag = min(1.0f, (mag - deadZoneCenter) / legalRange);
 			float scale = normalizedMag / mag;
-			pOutX = (x_f * scale);
-			pOutY = (y_f * scale);
+			x_f = (x_f * scale);
+			y_f = (y_f * scale);
+
+			if (x_f == 0 || y_f == 0) {
+				pOutX = x_f;
+				pOutY = y_f;
+			} else if (fabs(x_f) > fabs(y_f)) {
+				if (x_f > 0) {
+					// fit to the right side of the square.
+					pOutX = normalizedMag;
+					pOutY = normalizedMag * y_f / x_f;
+				} else {
+					// fit to the left side of the square.
+					pOutX = -normalizedMag;
+					pOutY = -normalizedMag * y_f / x_f;
+				}
+			} else { // fabs(x_f) < fabs(y_f)
+				if (y_f > 0) {
+					// fit to the top side of the square.
+					pOutX = normalizedMag * x_f / y_f;
+					pOutY = normalizedMag;
+				} else {
+					// fit to the bottom side of the square.
+					pOutX = -normalizedMag * x_f / y_f;
+					pOutY = -normalizedMag;
+				}
+			}
 		} else {
 			// stick is in the inner dead zone
 			pOutX = 0.0f;
