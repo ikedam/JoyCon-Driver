@@ -955,6 +955,14 @@ public:
 	//	return 0;
 	//}
 
+	// Player LED Enable
+	void set_led() {
+		if (!(1 <= this->vJoyNumber && this->vJoyNumber <= 4)) {
+			return;
+		}
 
-
+		uint8_t buf[0x40];
+		buf[0] = 0x01 << (this->vJoyNumber - 1);
+		this->send_subcommand(0x01, 0x30, buf, 1);
+	}
 };

@@ -1134,6 +1134,71 @@ void pollLoop() {
 		}
 	}
 
+	// Re-detection
+	if (lcounter != rcounter || lcounter == 0) {
+		hid_device_info* devs = hid_enumerate(JOYCON_VENDOR, 0x0);
+
+		for (hid_device_info* cur_dev = devs; cur_dev; cur_dev = cur_dev->next) {
+			if (cur_dev->vendor_id != JOYCON_VENDOR) {
+				continue;
+			}
+
+			// bluetooth, left / right joycon:
+			if (cur_dev->product_id != JOYCON_L_BT && cur_dev->product_id != JOYCON_R_BT) {
+				continue;
+			}
+
+			std::vector<Joycon>::iterator it = joycons.begin();
+			// Is this known one?
+			for (; it != joycons.end(); ++it) {
+				if (std::wcscmp(it->serial, cur_dev->serial_number) == 0) {
+					break;
+				}
+			}
+			if (it == joycons.end()) {
+				// Found a new one!
+				Joycon jc = Joycon(cur_dev);
+				if (jc.left_right == 1) {
+					jc.vJoyNumber = ++lcounter;
+					jc.deviceNumber = 0;
+				}
+				else if (jc.left_right == 2) {
+					jc.vJoyNumber = ++rcounter;
+					jc.deviceNumber = 1;
+				}
+				joycons.push_back(jc);
+				it = --joycons.end();
+			} else {
+				if (it->handle) {
+					continue;
+				}
+
+				// Found lost one!
+				printf("Found lost joycon %c: %ls %s\n", L_OR_R(it->left_right), cur_dev->serial_number, cur_dev->path);
+				it->handle = hid_open_path(cur_dev->path);
+
+				if (it->handle == nullptr) {
+					printf("Could not open serial %ls: %s\n", it->serial, strerror(errno));
+					throw;
+				}
+
+				if (it->left_right == 1) {
+					++lcounter;
+				}
+				else if (it->left_right == 2) {
+					++rcounter;
+				}
+			}
+			printf("Initializing joycon %c: %ls\n", L_OR_R(it->left_right), it->serial);
+			it->init_bt();
+			it->set_led();
+			it->rumble(100, 1);
+			Sleep(20);
+			it->rumble(10, 3);
+		}
+		hid_free_enumeration(devs);
+	}
+
 	if (settings.restart) {
 		settings.restart = false;
 		start();
@@ -1227,17 +1292,6 @@ init_start:
 
 
 
-	// init joycons:
-	if (settings.usingGrip) {
-		for (int i = 0; i < joycons.size(); ++i) {
-			joycons[i].init_usb();
-		}
-	} else {
-		for (int i = 0; i < joycons.size(); ++i) {
-			joycons[i].init_bt();
-		}
-	}
-
 	if (settings.combineJoyCons) {
 		for (int i = 0; i < joycons.size(); ++i) {
 			if (joycons[i].left_right == 1) {
@@ -1252,6 +1306,17 @@ init_start:
 		for (int i = 0; i < joycons.size(); ++i) {
 			joycons[i].vJoyNumber = i+1;
 			joycons[i].deviceNumber = 0;// left
+		}
+	}
+
+	// init joycons:
+	if (settings.usingGrip) {
+		for (int i = 0; i < joycons.size(); ++i) {
+			joycons[i].init_usb();
+		}
+	} else {
+		for (int i = 0; i < joycons.size(); ++i) {
+			joycons[i].init_bt();
 		}
 	}
 
