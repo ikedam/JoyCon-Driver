@@ -956,6 +956,8 @@ void pollLoop() {
 		//hid_read(jc->handle, buf, 0x40);
 		hid_read_timeout(jc->handle, buf, 0x40, 20);
 
+		// flush the queue
+		while (hid_read(jc->handle, buf, 0x40) > 0);
 		// get rid of queue:
 		// if we force the poll to wait then the queue will never clear and will just freeze:
 		//if (!settings.forcePollUpdate) {
