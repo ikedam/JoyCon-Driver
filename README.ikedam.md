@@ -4,6 +4,7 @@ Notes for JoyCon-Driver
 How to build
 ------------
 
+* Buildable with Visual Studio Community 2017.
 * Build on x86 / Releases
 * The version mismatch with wx may be claimed when running.
     Rebuild wxWidgets-3.0.3 in that case.
