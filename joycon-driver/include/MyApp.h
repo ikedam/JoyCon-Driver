@@ -169,6 +169,8 @@ public:
 
 	void checkForUpdate();
 
+protected:
+	wxTaskBarIcon* taskBarIcon;
 };
 
 

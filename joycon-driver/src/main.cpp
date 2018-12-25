@@ -24,6 +24,7 @@
 // wxWidgets:
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
+#include <wx/taskbar.h>
 #include <cube.h>
 #include <MyApp.h>
 
@@ -45,7 +46,7 @@
 // sio:
 #include "sio/sio_client.h"
 
-
+#include "../resource/resource.h"
 
 #pragma warning(disable:4996)
 
@@ -58,6 +59,9 @@
 #define PI 3.14159265359
 #define L_OR_R(lr) (lr == 1 ? 'L' : (lr == 2 ? 'R' : '?'))
 
+// To expand X (when X is a macro)
+#define _wxICON_RSCID(X) wxIcon(wxT("#" #X))
+#define wxICON_RSCID(X) _wxICON_RSCID(X)
 
 std::vector<Joycon> joycons;
 MouseController MC;
@@ -2210,7 +2214,10 @@ TestGLContext& MyApp::GetContext(wxGLCanvas *canvas, bool useStereo) {
 
 
 
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©2018")) {
+MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©2018"))
+	, taskBarIcon(nullptr)
+{
+	SetIcon(wxICON_RSCID(IDI_MAIN));
 
 	wxPanel *panel = new wxPanel(this, wxID_ANY);
 
@@ -2316,6 +2323,8 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 void MainFrame::onStart(wxCommandEvent&) {
 	setupConsole("Debug");
 	this->Hide();
+	taskBarIcon = new wxTaskBarIcon();
+	taskBarIcon->SetIcon(GetIcon(), GetTitle());
 	if (settings.gyroWindow) {
 		new MyFrame();
 	}
@@ -2332,11 +2341,21 @@ void MainFrame::onStart(wxCommandEvent&) {
 
 void MainFrame::onQuit(wxCommandEvent&) {
 	actuallyQuit();
+	if (taskBarIcon) {
+		taskBarIcon->Destroy();
+		delete taskBarIcon;
+		taskBarIcon = nullptr;
+	}
 	exit(0);
 }
 
 void MainFrame::onQuit2(wxCloseEvent&) {
 	actuallyQuit();
+	if (taskBarIcon) {
+		taskBarIcon->Destroy();
+		delete taskBarIcon;
+		taskBarIcon = nullptr;
+	}
 	exit(0);
 }
 
@@ -2638,7 +2657,7 @@ MyFrame::MyFrame(bool stereoWindow) : wxFrame(NULL, wxID_ANY, wxT("3D JoyCon gyr
 
 	new TestGLCanvas(this, stereoWindow ? stereoAttribList : NULL);
 
-	SetIcon(wxICON(sample));
+	SetIcon(wxICON_RSCID(IDI_MAIN));
 
 	SetClientSize(400, 400);
 	Show();
