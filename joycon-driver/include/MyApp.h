@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wx/glcanvas.h>
+#include <wx/taskbar.h>
 #include <wx/wx.h>
 #include <wx/hyperlink.h>
 #include <wx/aboutdlg.h>
@@ -171,6 +172,8 @@ public:
 
 protected:
 	wxTaskBarIcon* taskBarIcon;
+private:
+	void DoQuit();
 };
 
 
@@ -193,5 +196,19 @@ private:
 };
 
 
+class MyTaskBarIcon : public wxTaskBarIcon {
+public:
+	MyTaskBarIcon(MainFrame* pParent)
+		: wxTaskBarIcon()
+		, m_pParent(pParent)
+	{}
+protected:
+	virtual wxMenu* CreatePopupMenu();
+	void OnDoubleClick(wxTaskBarIconEvent& event);
+	void OnMenuOpen(wxCommandEvent& event);
+	void OnMenuExit(wxCommandEvent& event);
 
-
+	wxDECLARE_EVENT_TABLE();
+private:
+	MainFrame* m_pParent;
+};

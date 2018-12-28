@@ -2322,15 +2322,20 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 
 void MainFrame::onStart(wxCommandEvent&) {
 	setupConsole("Debug");
+	setConsoleSendCloseTo(this->GetHWND());
 	this->Hide();
-	taskBarIcon = new wxTaskBarIcon();
-	taskBarIcon->SetIcon(GetIcon(), GetTitle());
 	if (settings.gyroWindow) {
 		new MyFrame();
 	}
 
 
 	start();
+
+	taskBarIcon = new MyTaskBarIcon(this);
+	taskBarIcon->SetIcon(GetIcon(), GetTitle());
+	hideConsole();
+	taskBarIcon->ShowBalloon(GetTitle(), wxT("JoyCon-Driver is now running."));
+
 	if (!settings.gyroWindow) {
 		while (true) {
 			pollLoop();
@@ -2340,16 +2345,14 @@ void MainFrame::onStart(wxCommandEvent&) {
 }
 
 void MainFrame::onQuit(wxCommandEvent&) {
-	actuallyQuit();
-	if (taskBarIcon) {
-		taskBarIcon->Destroy();
-		delete taskBarIcon;
-		taskBarIcon = nullptr;
-	}
-	exit(0);
+	DoQuit();
 }
 
 void MainFrame::onQuit2(wxCloseEvent&) {
+	DoQuit();
+}
+
+void MainFrame::DoQuit() {
 	actuallyQuit();
 	if (taskBarIcon) {
 		taskBarIcon->Destroy();
@@ -2673,6 +2676,38 @@ MyFrame::MyFrame(bool stereoWindow) : wxFrame(NULL, wxID_ANY, wxT("3D JoyCon gyr
 			ShowFullScreen(true);
 		}
 	}
+}
+
+// ----------------------------------------------------------------------------
+// MyTaskBarIcon: the icon on the task tray
+// ----------------------------------------------------------------------------
+wxBEGIN_EVENT_TABLE(MyTaskBarIcon, wxTaskBarIcon)
+	EVT_TASKBAR_LEFT_DCLICK(MyTaskBarIcon::OnDoubleClick)
+	EVT_MENU(wxID_OPEN, MyTaskBarIcon::OnMenuOpen)
+	EVT_MENU(wxID_EXIT, MyTaskBarIcon::OnMenuExit)
+wxEND_EVENT_TABLE()
+
+wxMenu* MyTaskBarIcon::CreatePopupMenu() {
+	wxMenu* pMenu = new wxMenu();
+	pMenu->Append(wxID_OPEN, wxT("&Open Console"));
+	pMenu->Append(wxID_EXIT, wxT("&Exit"));
+	::SetMenuDefaultItem(pMenu->GetHMenu(), 0, TRUE);
+	return pMenu;
+}
+
+void MyTaskBarIcon::OnDoubleClick(wxTaskBarIconEvent& event) {
+	showConsole();
+}
+
+void MyTaskBarIcon::OnMenuOpen(wxCommandEvent& event) {
+	showConsole();
+}
+
+void MyTaskBarIcon::OnMenuExit(wxCommandEvent& event) {
+	if (!m_pParent) {
+		return;
+	}
+	wxPostEvent(m_pParent, wxCloseEvent(wxEVT_CLOSE_WINDOW));
 }
 
 
