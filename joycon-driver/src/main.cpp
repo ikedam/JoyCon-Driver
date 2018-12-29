@@ -20,6 +20,7 @@
 #include "joycon.hpp"
 #include "MouseController.hpp"
 #include "tools.hpp"
+#include "console.h"
 
 // wxWidgets:
 #include <wx/wx.h>

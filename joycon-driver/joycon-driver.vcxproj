@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\console.h" />
     <ClInclude Include="include\MyApp.h" />
     <ClInclude Include="include\cube.h" />
     <ClInclude Include="include\hidapi.h" />
@@ -46,6 +47,7 @@
     <ClCompile Include="include\sio\internal\sio_packet.cpp" />
     <ClCompile Include="include\sio\sio_client.cpp" />
     <ClCompile Include="include\sio\sio_socket.cpp" />
+    <ClCompile Include="src\console.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
