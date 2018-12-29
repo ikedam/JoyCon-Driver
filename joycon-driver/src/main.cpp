@@ -25,6 +25,7 @@
 // wxWidgets:
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
+#include <wx/notifmsg.h>
 #include <wx/taskbar.h>
 #include <cube.h>
 #include <MyApp.h>
@@ -73,6 +74,8 @@ int lcounter = 0;
 int rcounter = 0;
 bool started = false;
 std::chrono::high_resolution_clock::time_point lastDetection;
+uint8_t lbattery = 0;
+uint8_t rbattery = 0;
 
 // sio:
 sio::client myClient;
@@ -1141,24 +1144,31 @@ void pollLoop() {
 		}
 	}
 
+	// store battery status
+	// (really ad-hoc implementation)
+	for (int i = 0; i < joycons.size(); ++i) {
+		if (joycons[i].left_right == 1) {
+			lbattery = joycons[i].battery;
+		} else if (joycons[i].left_right == 2) {
+			rbattery = joycons[i].battery;
+		}
+	}
 	// Status
 	{
 		float x = 0;
 		float y = 0;
 		float rx = 0;
 		float ry = 0;
-		int batteryL = 0;
-		int batteryR = 0;
+		int batteryL = 25 * lbattery / 2;
+		int batteryR = 25 * rbattery / 2;
 
 		for (int i = 0; i < joycons.size(); ++i) {
 			if (joycons[i].left_right == 1) {
 				x = joycons[i].stick.CalX;
 				y = joycons[i].stick.CalY;
-				batteryL = 25 * joycons[i].battery / 2;
 			} else if (joycons[i].left_right == 2) {
 				rx = joycons[i].stick.CalX;
 				ry = joycons[i].stick.CalY;
-				batteryR = 25 * joycons[i].battery / 2;
 			}
 		}
 		printf(
@@ -2353,13 +2363,16 @@ void MainFrame::onStart(wxCommandEvent&) {
 	start();
 
 	taskBarIcon = new MyTaskBarIcon(this);
-	taskBarIcon->SetIcon(GetIcon(), GetTitle());
+	taskBarIcon->SetTitle(GetTitle());
+	taskBarIcon->SetIcon(GetIcon());
+	taskBarIcon->SetJoyConStatus(lcounter, rcounter, lbattery, rbattery);
 	hideConsole();
-	taskBarIcon->ShowBalloon(GetTitle(), wxT("JoyCon-Driver is now running."));
+	taskBarIcon->StartNotification();
 
 	if (!settings.gyroWindow) {
 		while (true) {
 			pollLoop();
+			taskBarIcon->SetJoyConStatus(lcounter, rcounter, lbattery, rbattery);
 			wxYield();// so that the main window doesn't freeze
 		}
 	}
@@ -2736,6 +2749,113 @@ void MyTaskBarIcon::OnMenuExit(wxCommandEvent& event) {
 
 void MyTaskBarIcon::OnMenuGameController(wxCommandEvent& event) {
 	wxExecute(wxT("control joy.cpl"));
+}
+
+void MyTaskBarIcon::SetTitle(const wxString &title) {
+	m_title = title;
+}
+
+const wxString MyTaskBarIcon::GetTooltip() const {
+	return m_title;
+}
+
+bool MyTaskBarIcon::SetIcon(const wxIcon &icon, const wxString &tooltip) {
+	m_icon = icon;
+	return wxTaskBarIcon::SetIcon(icon, GetTooltip());
+}
+
+void MyTaskBarIcon::NotifyInfo(const wxString& message) {
+	/*
+	wxNotificationMessage msg;
+	msg.UseTaskBarIcon(this);
+	msg.SetTitle(m_title);
+	msg.SetFlags(wxICON_INFORMATION);
+	msg.SetMessage(message);
+	msg.Show();
+	*/
+	ShowBalloon(m_title, message);
+}
+
+void MyTaskBarIcon::NotifyWarning(const wxString& message) {
+	wxNotificationMessage msg;
+	msg.UseTaskBarIcon(this);
+	msg.SetTitle(m_title);
+	msg.SetFlags(wxICON_WARNING);
+	msg.SetMessage(message);
+	msg.Show();
+}
+
+void MyTaskBarIcon::StartNotification() {
+	NotifyInfo(wxT("JoyCon-Driver is now running."));
+	m_notification = true;
+}
+
+void MyTaskBarIcon::SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery, uint8_t rbattery) {
+	if (m_notification) {
+		if (lcounter < m_lcounter) {
+			NotifyWarning(wxT("JoyCon(L) was disconnected."));
+		} else if (lcounter > m_lcounter) {
+			NotifyInfo(wxT("JoyCon(L) was connected."));
+		}
+		if (rcounter < m_rcounter) {
+			NotifyWarning(wxT("JoyCon(R) was disconnected."));
+		} else if (rcounter > m_rcounter) {
+			NotifyInfo(wxT("JoyCon(R) was connected."));
+		}
+		if (lbattery != m_lbattery) {
+			if ((lbattery & 0x01) == 0) {
+				if (lbattery <= 2) {
+					// force notify
+					m_lastBatteryNotification = 0;
+				}
+			} else {
+				if ((m_lbattery & 0x01) == 0) {
+					// charge started.
+					NotifyInfo("JoyCon(L) started charging.");
+				}
+			}
+		}
+		if (rbattery != m_rbattery) {
+			if ((rbattery & 0x01) == 0) {
+				if (rbattery <= 2) {
+					// force notify
+					m_lastBatteryNotification = 0;
+				}
+			} else {
+				if ((m_rbattery & 0x01) == 0) {
+					// charge started.
+					NotifyInfo("JoyCon(R) started charging.");
+				}
+			}
+		}
+	}
+	m_lcounter = lcounter;
+	m_rcounter = rcounter;
+	m_lbattery = lbattery;
+	m_rbattery = rbattery;
+	if (m_notification) {
+		NotifyIfBatteryIsLow();
+	}
+}
+
+void MyTaskBarIcon::NotifyIfBatteryIsLow() {
+	// Notify battery if battery is low
+	bool llow = ((m_lbattery & 0x01) == 0 && m_lbattery <= 2);
+	bool rlow = ((m_rbattery & 0x01) == 0 && m_rbattery <= 2);
+	if (!llow && !rlow) {
+		return;
+	}
+	long now = wxGetUTCTime();
+	if ((now - m_lastBatteryNotification) < 600) {
+		return;
+	}
+	if (llow && rlow) {
+		NotifyWarning("Battery is low: JoyCon L / R");
+	} else if (llow) {
+		NotifyWarning("Battery is low: JoyCon L");
+	} else if (rlow) {
+		NotifyWarning("Battery is low: JoyCon R");
+	}
 }
 
 //int main(int argc, char *argv[]) {

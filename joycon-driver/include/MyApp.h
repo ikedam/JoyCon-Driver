@@ -85,7 +85,7 @@ private:
 };
 
 
-
+class MyTaskBarIcon;
 
 // Define a new frame type
 class MainFrame : public wxFrame
@@ -171,7 +171,7 @@ public:
 	void checkForUpdate();
 
 protected:
-	wxTaskBarIcon* taskBarIcon;
+	MyTaskBarIcon* taskBarIcon;
 private:
 	void DoQuit();
 };
@@ -201,7 +201,15 @@ public:
 	MyTaskBarIcon(MainFrame* pParent)
 		: wxTaskBarIcon()
 		, m_pParent(pParent)
+		, m_notification(false)
+		, m_lastBatteryNotification(0)
 	{}
+
+	void StartNotification();
+	void SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery, uint8_t rbattery);
+	void SetTitle(const wxString& title);
+	const wxString GetTooltip() const;
+	virtual bool SetIcon(const wxIcon &icon, const wxString& tooltip=wxEmptyString);
 protected:
 	virtual wxMenu* CreatePopupMenu();
 	void OnDoubleClick(wxTaskBarIconEvent& event);
@@ -212,8 +220,20 @@ protected:
 	wxDECLARE_EVENT_TABLE();
 private:
 	MainFrame* m_pParent;
+	wxString m_title;
+	wxIcon m_icon;
+	bool m_notification;
+	int m_lcounter;
+	int m_rcounter;
+	uint8_t m_lbattery;
+	uint8_t m_rbattery;
+	long m_lastBatteryNotification;
 
 	enum {
 		MENUID_GAME_CONTROLLER = 10001,
 	};
+
+	void NotifyInfo(const wxString& message);
+	void NotifyWarning(const wxString& message);
+	void NotifyIfBatteryIsLow();
 };
