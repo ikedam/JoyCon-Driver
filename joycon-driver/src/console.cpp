@@ -1,28 +1,45 @@
 #include <cstdio>
 #include "console.h"
 
-void watchConsoleAndHide(HWND hConsole) {
-	WINDOWPLACEMENT wp;
-	wp.length = sizeof(wp);
-	if (!::GetWindowPlacement(hConsole, &wp)) {
-		return;
-	}
-	if (wp.showCmd != SW_SHOWMINIMIZED) {
-		return;
-	}
-	::ShowWindow(hConsole, SW_HIDE);
-}
+namespace {
+	// Unfortunately, there's no reliable way to the get the main window.
+	// And there's no way to set user data to the console window,
+	// (Setting GWLP_USERDATA results the console window crash)
+	HWND g_hMain;
 
-DWORD WINAPI watchConsoleAndHideThread(LPVOID) {
-	while (true) {
-		HWND hConsole = ::GetConsoleWindow();
-		if (hConsole == NULL) {
-			return 0;
+	// checking the minimized state causes high load,
+	// and the don't run the check when it's not shown.
+	bool g_shown;
+
+	// Need to watch the window.
+	bool g_watch = false;
+
+	void watchConsoleAndHide(HWND hConsole) {
+		WINDOWPLACEMENT wp;
+		wp.length = sizeof(wp);
+		if (!::GetWindowPlacement(hConsole, &wp)) {
+			return;
 		}
-		watchConsoleAndHide(hConsole);
-		::Sleep(100);
+		if (wp.showCmd != SW_SHOWMINIMIZED) {
+			return;
+		}
+		::ShowWindow(hConsole, SW_HIDE);
 	}
-}
+
+	DWORD WINAPI watchConsoleAndHideThread(LPVOID) {
+		while (g_watch) {
+			if (g_shown) {
+				HWND hConsole = ::GetConsoleWindow();
+				if (hConsole == NULL) {
+					return 0;
+				}
+				watchConsoleAndHide(hConsole);
+			}
+			::Sleep(500);
+		}
+		return 0;
+	}
+} // anonymous namespace
 
 void setupConsole(std::string title) {
 	// setup console
@@ -31,6 +48,8 @@ void setupConsole(std::string title) {
 	freopen("conout$", "w", stdout);
 	freopen("conout$", "w", stderr);
 	printf("Debugging Window:\n");
+
+	g_shown = true;
 
 	// Disable close button,
 	// as closing the console window results termination of the program.
@@ -43,6 +62,7 @@ void setupConsole(std::string title) {
 
 	// Watch the window.
 	// If it is minimized, hide it.
+	g_watch = true;
 	::CreateThread(
 		NULL,
 		0,
@@ -53,12 +73,13 @@ void setupConsole(std::string title) {
 	);
 }
 
-void hideConsole();
-
-// Unfortunately, there's no reliable way to the get the main window.
-// And there's no way to set user data to the console window,
-// (Setting GWLP_USERDATA results the console window crash)
-HWND g_hMain;
+void closeConsole() {
+	g_watch = false;
+	fclose(stdin);
+	fclose(stdout);
+	fclose(stderr);
+	FreeConsole();
+}
 
 BOOL WINAPI consoleCtrlHandler(DWORD dwCtrlType) {
 	switch (dwCtrlType) {
@@ -92,6 +113,7 @@ void hideConsole() {
 		return;
 	}
 	::ShowWindow(hConsole, SW_HIDE);
+	g_shown = false;
 }
 
 void showConsole() {
@@ -111,4 +133,5 @@ void showConsole() {
 		::ShowWindow(hConsole, SW_SHOW);
 	}
 	::SetForegroundWindow(hConsole);
+	g_shown = true;
 }

@@ -2355,6 +2355,7 @@ void MainFrame::onQuit2(wxCloseEvent&) {
 
 void MainFrame::DoQuit() {
 	actuallyQuit();
+	closeConsole();
 	if (taskBarIcon) {
 		taskBarIcon->Destroy();
 		delete taskBarIcon;
