@@ -1144,6 +1144,20 @@ void pollLoop() {
 		}
 	}
 
+	// Re-detection
+	if (lcounter != rcounter || lcounter == 0) {
+		std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+		std::chrono::milliseconds passed = std::chrono::duration_cast<std::chrono::milliseconds>(
+			now - lastDetection
+			);
+		if (passed > std::chrono::milliseconds(500)) {
+			if (DoDetection()) {
+				// In case of error, retry soon.
+				lastDetection = now;
+			}
+		}
+	}
+
 	// store battery status
 	// (really ad-hoc implementation)
 	for (int i = 0; i < joycons.size(); ++i) {
@@ -1180,20 +1194,6 @@ void pollLoop() {
 			batteryL,
 			batteryR
 		);
-	}
-
-	// Re-detection
-	if (lcounter != rcounter || lcounter == 0) {
-		std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
-		std::chrono::milliseconds passed = std::chrono::duration_cast<std::chrono::milliseconds>(
-			now - lastDetection
-		);
-		if (passed > std::chrono::milliseconds(500)) {
-			if (DoDetection()) {
-				// In case of error, retry soon.
-				lastDetection = now;
-			}
-		}
 	}
 
 	if (settings.restart) {
@@ -1280,6 +1280,7 @@ bool DoDetection() {
 		it->rumble(100, 1);
 		Sleep(20);
 		it->rumble(10, 3);
+		it->battery = 0x8;	// Cannot decide the battery and set to full to avoid phantom low-battery notification.
 	}
 	hid_free_enumeration(devs);
 
@@ -2840,8 +2841,8 @@ void MyTaskBarIcon::SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery
 
 void MyTaskBarIcon::NotifyIfBatteryIsLow() {
 	// Notify battery if battery is low
-	bool llow = ((m_lbattery & 0x01) == 0 && m_lbattery <= 2);
-	bool rlow = ((m_rbattery & 0x01) == 0 && m_rbattery <= 2);
+	bool llow = ((m_lcounter > 0) && ((m_lbattery & 0x01) == 0) && (m_lbattery <= 2));
+	bool rlow = ((m_rcounter > 0) && ((m_rbattery & 0x01) == 0) && (m_rbattery <= 2));
 	if (!llow && !rlow) {
 		return;
 	}
@@ -2849,6 +2850,7 @@ void MyTaskBarIcon::NotifyIfBatteryIsLow() {
 	if ((now - m_lastBatteryNotification) < 600) {
 		return;
 	}
+	m_lastBatteryNotification = now;
 	if (llow && rlow) {
 		NotifyWarning("Battery is low: JoyCon L / R");
 	} else if (llow) {
