@@ -72,6 +72,7 @@ int res = 0;
 int lcounter = 0;
 int rcounter = 0;
 bool started = false;
+std::chrono::high_resolution_clock::time_point lastDetection;
 
 // sio:
 sio::client myClient;
@@ -920,6 +921,7 @@ void parseSettings2() {
 }
 
 void start();
+bool DoDetection();
 
 void pollLoop() {
 
@@ -1172,81 +1174,16 @@ void pollLoop() {
 
 	// Re-detection
 	if (lcounter != rcounter || lcounter == 0) {
-		hid_device_info* devs = hid_enumerate(JOYCON_VENDOR, 0x0);
-
-		for (hid_device_info* cur_dev = devs; cur_dev; cur_dev = cur_dev->next) {
-			if (cur_dev->vendor_id != JOYCON_VENDOR) {
-				continue;
+		std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+		std::chrono::milliseconds passed = std::chrono::duration_cast<std::chrono::milliseconds>(
+			now - lastDetection
+		);
+		if (passed > std::chrono::milliseconds(500)) {
+			if (DoDetection()) {
+				// In case of error, retry soon.
+				lastDetection = now;
 			}
-
-			// bluetooth, left / right joycon:
-			if (cur_dev->product_id != JOYCON_L_BT && cur_dev->product_id != JOYCON_R_BT) {
-				continue;
-			}
-
-			std::vector<Joycon>::iterator it = joycons.begin();
-			// Is this known one?
-			for (; it != joycons.end(); ++it) {
-				if (std::wcscmp(it->serial, cur_dev->serial_number) == 0) {
-					break;
-				}
-			}
-			if (it == joycons.end()) {
-				// Found a new one!
-				Joycon jc = Joycon(cur_dev);
-				if (jc.left_right == 1) {
-					jc.vJoyNumber = ++lcounter;
-					jc.deviceNumber = 0;
-				}
-				else if (jc.left_right == 2) {
-					jc.vJoyNumber = ++rcounter;
-					jc.deviceNumber = 1;
-				}
-				joycons.push_back(jc);
-				it = --joycons.end();
-			} else {
-				if (it->handle) {
-					continue;
-				}
-
-				// Found lost one!
-				printf("\nFound lost joycon %c: %ls %s\n", L_OR_R(it->left_right), cur_dev->serial_number, cur_dev->path);
-				it->handle = hid_open_path(cur_dev->path);
-
-				if (it->handle == nullptr) {
-					printf("Could not open serial %ls: %s\n", it->serial, strerror(errno));
-					throw;
-				}
-
-				if (it->left_right == 1) {
-					++lcounter;
-				}
-				else if (it->left_right == 2) {
-					++rcounter;
-				}
-			}
-			printf("Initializing joycon %c: %ls\n", L_OR_R(it->left_right), it->serial);
-			if (it->init_bt() < 0) {
-				printf(
-					"\nOops! Failed to init joycon %c: %ls\n",
-					L_OR_R(it->left_right),
-					it->serial
-				);
-				hid_close(it->handle);
-				it->handle = nullptr;
-				if (it->left_right == 1) {
-					--lcounter;
-				} if (it->left_right == 2) {
-					--rcounter;
-				}
-				continue;
-			}
-			it->set_led();
-			it->rumble(100, 1);
-			Sleep(20);
-			it->rumble(10, 3);
 		}
-		hid_free_enumeration(devs);
 	}
 
 	if (settings.restart) {
@@ -1255,6 +1192,89 @@ void pollLoop() {
 	}
 }
 
+bool DoDetection() {
+	bool error = false;
+
+	hid_device_info* devs = hid_enumerate(JOYCON_VENDOR, 0x0);
+
+	for (hid_device_info* cur_dev = devs; cur_dev; cur_dev = cur_dev->next) {
+		if (cur_dev->vendor_id != JOYCON_VENDOR) {
+			continue;
+		}
+
+		// bluetooth, left / right joycon:
+		if (cur_dev->product_id != JOYCON_L_BT && cur_dev->product_id != JOYCON_R_BT) {
+			continue;
+		}
+
+		std::vector<Joycon>::iterator it = joycons.begin();
+		// Is this known one?
+		for (; it != joycons.end(); ++it) {
+			if (std::wcscmp(it->serial, cur_dev->serial_number) == 0) {
+				break;
+			}
+		}
+		if (it == joycons.end()) {
+			// Found a new one!
+			Joycon jc = Joycon(cur_dev);
+			if (jc.left_right == 1) {
+				jc.vJoyNumber = ++lcounter;
+				jc.deviceNumber = 0;
+			}
+			else if (jc.left_right == 2) {
+				jc.vJoyNumber = ++rcounter;
+				jc.deviceNumber = 1;
+			}
+			joycons.push_back(jc);
+			it = --joycons.end();
+		}
+		else {
+			if (it->handle) {
+				continue;
+			}
+
+			// Found lost one!
+			printf("\nFound lost joycon %c: %ls %s\n", L_OR_R(it->left_right), cur_dev->serial_number, cur_dev->path);
+			it->handle = hid_open_path(cur_dev->path);
+
+			if (it->handle == nullptr) {
+				printf("Could not open serial %ls: %s\n", it->serial, strerror(errno));
+				throw;
+			}
+
+			if (it->left_right == 1) {
+				++lcounter;
+			}
+			else if (it->left_right == 2) {
+				++rcounter;
+			}
+		}
+		printf("Initializing joycon %c: %ls\n", L_OR_R(it->left_right), it->serial);
+		if (it->init_bt() < 0) {
+			printf(
+				"\nOops! Failed to init joycon %c: %ls\n",
+				L_OR_R(it->left_right),
+				it->serial
+			);
+			hid_close(it->handle);
+			it->handle = nullptr;
+			if (it->left_right == 1) {
+				--lcounter;
+			} if (it->left_right == 2) {
+				--rcounter;
+			}
+			error = true;
+			continue;
+		}
+		it->set_led();
+		it->rumble(100, 1);
+		Sleep(20);
+		it->rumble(10, 3);
+	}
+	hid_free_enumeration(devs);
+
+	return !error;
+}
 
 
 void start() {
