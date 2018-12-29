@@ -2254,7 +2254,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 	CB6 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick X"), wxDLG_UNIT(this, wxPoint(12, 22)));
 	CB6->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleReverseX, this);
 	CB6->SetValue(settings.reverseX);
-	CB7 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick Y"), wxDLG_UNIT(this, wxPoint(72, 22)));
+	CB7 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick Y"), wxDLG_UNIT(this, wxPoint(84, 22)));
 	CB7->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleReverseY, this);
 	CB7->SetValue(settings.reverseY);
 
@@ -2262,7 +2262,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 	gyroCheckBox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleGyro, this);
 	gyroCheckBox->SetValue(settings.enableGyro);
 
-	CB4 = new wxCheckBox(panel, wxID_ANY, wxT("Gyro Window"), wxDLG_UNIT(this, wxPoint(72, 33)));
+	CB4 = new wxCheckBox(panel, wxID_ANY, wxT("Gyro Window"), wxDLG_UNIT(this, wxPoint(84, 33)));
 	CB4->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleGyroWindow, this);
 	CB4->SetValue(settings.gyroWindow);
 	CB8 = new wxCheckBox(panel, wxID_ANY, wxT("Prefer Left JoyCon for Gyro Controls"), wxDLG_UNIT(this, wxPoint(12, 44)));
@@ -2271,14 +2271,14 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 	CB12 = new wxCheckBox(panel, wxID_ANY, wxT("Quick Toggle Gyro Controls"), wxDLG_UNIT(this, wxPoint(12, 55)));
 	CB12->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleQuickToggleGyro, this);
 	CB12->SetValue(settings.quickToggleGyro);
-	CB13 = new wxCheckBox(panel, wxID_ANY, wxT("Invert Quick Toggle"), wxDLG_UNIT(this, wxPoint(114, 55)));
+	CB13 = new wxCheckBox(panel, wxID_ANY, wxT("Invert Quick Toggle"), wxDLG_UNIT(this, wxPoint(116, 55)));
 	CB13->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleInvertQuickToggle, this);
 	CB13->SetValue(settings.invertQuickToggle);
 
 	CB5 = new wxCheckBox(panel, wxID_ANY, wxT("Mario Theme"), wxDLG_UNIT(this, wxPoint(12, 66)));
 	CB5->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleMario, this);
 	CB5->SetValue(settings.marioTheme);
-	CB14 = new wxCheckBox(panel, wxID_ANY, wxT("Dolphin Mode"), wxDLG_UNIT(this, wxPoint(72, 66)));
+	CB14 = new wxCheckBox(panel, wxID_ANY, wxT("Dolphin Mode"), wxDLG_UNIT(this, wxPoint(84, 66)));
 	CB14->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleDolphinPointerMode, this);
 	CB14->SetValue(settings.dolphinPointerMode);
 
@@ -2286,7 +2286,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 	CB9->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleDebugMode, this);
 	CB9->SetValue(settings.debugMode);
 
-	CB10 = new wxCheckBox(panel, wxID_ANY, wxT("Write Debug To File"), wxDLG_UNIT(this, wxPoint(72, 77)));
+	CB10 = new wxCheckBox(panel, wxID_ANY, wxT("Write Debug To File"), wxDLG_UNIT(this, wxPoint(84, 77)));
 	CB10->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleWriteDebug, this);
 	CB10->SetValue(settings.debugMode);
 
@@ -2297,12 +2297,12 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 
 	slider1Text = new wxStaticText(panel, wxID_ANY, wxT("Gyro Controls Sensitivity X"), wxDLG_UNIT(this, wxPoint(12, 110)));
 	st1 = new wxStaticText(panel, wxID_ANY, wxT("(Also the sensitivity for Rz/sl0/sl1)"), wxDLG_UNIT(this, wxPoint(24, 121)));
-	slider1 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityX, -1000, 1000, wxDLG_UNIT(this, wxPoint(108, 99)), wxDLG_UNIT(this, wxSize(90, 11)), wxSL_LABELS);
+	slider1 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityX, -1000, 1000, wxDLG_UNIT(this, wxPoint(108, 102)), wxDLG_UNIT(this, wxSize(90, 11)), wxSL_LABELS);
 	slider1->Bind(wxEVT_SLIDER, &MainFrame::setGyroSensitivityX, this);
 
 
 	slider2Text = new wxStaticText(panel, wxID_ANY, wxT("Gyro Controls Sensitivity Y"), wxDLG_UNIT(this, wxPoint(12, 132)));
-	slider2 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityY, -1000, 1000, wxDLG_UNIT(this, wxPoint(108, 121)), wxDLG_UNIT(this, wxSize(90, 11)), wxSL_LABELS);
+	slider2 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityY, -1000, 1000, wxDLG_UNIT(this, wxPoint(108, 124)), wxDLG_UNIT(this, wxSize(90, 11)), wxSL_LABELS);
 	slider2->Bind(wxEVT_SLIDER, &MainFrame::setGyroSensitivityY, this);
 
 	CB15 = new wxCheckBox(panel, wxID_ANY, wxT("Broadcast Mode"), wxDLG_UNIT(this, wxPoint(84, 88)));
