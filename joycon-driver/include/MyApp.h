@@ -207,8 +207,13 @@ protected:
 	void OnDoubleClick(wxTaskBarIconEvent& event);
 	void OnMenuOpen(wxCommandEvent& event);
 	void OnMenuExit(wxCommandEvent& event);
+	void OnMenuGameController(wxCommandEvent& event);
 
 	wxDECLARE_EVENT_TABLE();
 private:
 	MainFrame* m_pParent;
+
+	enum {
+		MENUID_GAME_CONTROLLER = 10001,
+	};
 };
