@@ -86,6 +86,7 @@ private:
 
 
 class MyTaskBarIcon;
+class MyLoopThread;
 
 // Define a new frame type
 class MainFrame : public wxFrame
@@ -134,6 +135,7 @@ public:
 	MainFrame();
 
 	void onStart(wxCommandEvent&);
+	void DoWork();
 	void onQuit(wxCommandEvent&);
 	
 	void onQuit2(wxCloseEvent&);
@@ -172,6 +174,7 @@ public:
 
 protected:
 	MyTaskBarIcon* taskBarIcon;
+	MyLoopThread* loopThread;
 private:
 	void DoQuit();
 };
@@ -236,4 +239,21 @@ private:
 	void NotifyInfo(const wxString& message);
 	void NotifyWarning(const wxString& message);
 	void NotifyIfBatteryIsLow();
+};
+
+class MyLoopThread : public wxThread {
+public:
+	MyLoopThread(MainFrame* pMainFrame)
+		: wxThread(wxTHREAD_JOINABLE)
+		, m_pMainFrame(pMainFrame)
+	{}
+protected:
+	virtual ExitCode Entry() {
+		while (!TestDestroy()) {
+			m_pMainFrame->DoWork();
+		}
+		return 0;
+	}
+private:
+	MainFrame* m_pMainFrame;
 };

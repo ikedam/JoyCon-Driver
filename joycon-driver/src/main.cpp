@@ -2248,6 +2248,7 @@ TestGLContext& MyApp::GetContext(wxGLCanvas *canvas, bool useStereo) {
 
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©2018"))
 	, taskBarIcon(nullptr)
+	, loopThread(nullptr)
 {
 	SetIcon(wxICON_RSCID(IDI_MAIN));
 
@@ -2371,12 +2372,16 @@ void MainFrame::onStart(wxCommandEvent&) {
 	taskBarIcon->StartNotification();
 
 	if (!settings.gyroWindow) {
-		while (true) {
-			pollLoop();
-			taskBarIcon->SetJoyConStatus(lcounter, rcounter, lbattery, rbattery);
-			wxYield();// so that the main window doesn't freeze
+		if (!loopThread) {
+			loopThread = new MyLoopThread(this);
+			loopThread->Run();
 		}
 	}
+}
+
+void MainFrame::DoWork() {
+	pollLoop();
+	taskBarIcon->SetJoyConStatus(lcounter, rcounter, lbattery, rbattery);
 }
 
 void MainFrame::onQuit(wxCommandEvent&) {
@@ -2388,6 +2393,12 @@ void MainFrame::onQuit2(wxCloseEvent&) {
 }
 
 void MainFrame::DoQuit() {
+	if (loopThread) {
+		loopThread->Delete();
+		loopThread->Wait();
+		delete loopThread;
+		loopThread = nullptr;
+	}
 	actuallyQuit();
 	closeConsole();
 	if (taskBarIcon) {
