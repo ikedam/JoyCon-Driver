@@ -2,7 +2,7 @@
 #include <string>
 #include <windows.h>
 
-void setupConsole(std::string title);
+void setupConsole(LPCTSTR title);
 void setConsoleSendCloseTo(HWND hWnd);
 void closeConsole();
 void hideConsole();

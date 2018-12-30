@@ -2354,7 +2354,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©20
 
 
 void MainFrame::onStart(wxCommandEvent&) {
-	setupConsole("Debug");
+	wxString consoleTitle;
+	consoleTitle << wxT("Debug: ") << GetTitle();
+	setupConsole(consoleTitle.c_str());
 	setConsoleSendCloseTo(this->GetHWND());
 	this->Hide();
 	if (settings.gyroWindow) {

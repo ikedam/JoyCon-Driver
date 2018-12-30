@@ -41,9 +41,10 @@ namespace {
 	}
 } // anonymous namespace
 
-void setupConsole(std::string title) {
+void setupConsole(LPCTSTR title) {
 	// setup console
 	AllocConsole();
+	SetConsoleTitle(title);
 	freopen("conin$", "r", stdin);
 	freopen("conout$", "w", stdout);
 	freopen("conout$", "w", stderr);
