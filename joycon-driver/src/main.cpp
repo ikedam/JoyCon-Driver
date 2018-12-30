@@ -2246,7 +2246,7 @@ TestGLContext& MyApp::GetContext(wxGLCanvas *canvas, bool useStereo) {
 
 
 
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse ©2018"))
+MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse (c)2018"))
 	, taskBarIcon(nullptr)
 	, loopThread(nullptr)
 {
