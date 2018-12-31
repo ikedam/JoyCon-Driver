@@ -933,6 +933,9 @@ void pollLoop() {
 		
 		Joycon *jc = &joycons[i];
 
+		// get current time
+		std::chrono::steady_clock::time_point tNow = std::chrono::high_resolution_clock::now();
+
 		// choose a random joycon to reduce bias / figure out the problem w/input lag:
 		//Joycon *jc = &joycons[rand_range(0, joycons.size()-1)];
 		
@@ -949,9 +952,6 @@ void pollLoop() {
 
 		// get input:
 		memset(buf, 0, 65);
-
-		// get current time
-		std::chrono::steady_clock::time_point tNow = std::chrono::high_resolution_clock::now();
 
 		auto timeSincePoll = std::chrono::duration_cast<std::chrono::microseconds>(tNow - tracker.tPolls[i]);
 
@@ -993,6 +993,11 @@ void pollLoop() {
 		//}
 
 		handle_input(jc, buf, 0x40);
+
+		std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::high_resolution_clock::now() - tNow
+		);
+		jc->delay = static_cast<int>(duration.count());
 	}
 
 	// update vjoy:
@@ -1149,7 +1154,7 @@ void pollLoop() {
 		std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
 		std::chrono::milliseconds passed = std::chrono::duration_cast<std::chrono::milliseconds>(
 			now - lastDetection
-			);
+		);
 		if (passed > std::chrono::milliseconds(500)) {
 			if (DoDetection()) {
 				// In case of error, retry soon.
@@ -1175,22 +1180,28 @@ void pollLoop() {
 		float ry = 0;
 		int batteryL = 25 * lbattery / 2;
 		int batteryR = 25 * rbattery / 2;
+		int ldelay = 0;
+		int rdelay = 0;
 
 		for (int i = 0; i < joycons.size(); ++i) {
 			if (joycons[i].left_right == 1) {
 				x = joycons[i].stick.CalX;
 				y = joycons[i].stick.CalY;
+				ldelay = joycons[i].delay;
 			} else if (joycons[i].left_right == 2) {
 				rx = joycons[i].stick.CalX;
 				ry = joycons[i].stick.CalY;
+				rdelay = joycons[i].delay;
 			}
 		}
 		printf(
-			"\rLeft: (%5.2f, %5.2f) Right: (%5.2f, %5.2f) Battery: L %3d %%, R %3d %%",
+			"\rLeft: (%5.2f, %5.2f, delay=%4dms) Right: (%5.2f, %5.2f, delay=%4dms) Battery: L %3d %%, R %3d %%",
 			x,
 			y,
+			ldelay,
 			rx,
 			ry,
+			rdelay,
 			batteryL,
 			batteryR
 		);

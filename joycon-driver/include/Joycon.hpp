@@ -180,6 +180,7 @@ public:
 	uint16_t stick_cal_y_l[0x3];
 	uint16_t stick_cal_x_r[0x3];
 	uint16_t stick_cal_y_r[0x3];
+	int delay;
 
 
 public:
