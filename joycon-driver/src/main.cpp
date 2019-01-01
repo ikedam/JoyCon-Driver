@@ -953,6 +953,8 @@ void pollLoop() {
 		// get input:
 		memset(buf, 0, 65);
 
+		// Unknown operation. Skip.
+		/*
 		auto timeSincePoll = std::chrono::duration_cast<std::chrono::microseconds>(tNow - tracker.tPolls[i]);
 
 		// time spent sleeping (0):
@@ -962,6 +964,7 @@ void pollLoop() {
 			jc->send_command(0x1E, buf, 0);
 			tracker.tPolls[i] = std::chrono::high_resolution_clock::now();
 		}
+		*/
 
 
 		//hid_read(jc->handle, buf, 0x40);

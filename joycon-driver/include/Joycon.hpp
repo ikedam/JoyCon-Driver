@@ -1,4 +1,5 @@
 #include <bitset>
+#include <chrono>
 #include <hidapi.h>
 #include "tools.hpp"
 
@@ -102,11 +103,12 @@ public:
 
 
 	// calibration data:
-
+#pragma pack(push, 1)
 	struct brcm_hdr {
 		uint8_t cmd;
 		uint8_t rumble[9];
 	};
+#pragma pack(pop)
 
 	//struct brcm_cmd_01 {
 	//	uint8_t subcmd;
@@ -123,13 +125,13 @@ public:
 	//	};
 	//};
 
+#pragma pack(push, 1)
 	struct brcm_cmd_01 {
 		uint8_t subcmd;
 		uint32_t offset;
 		uint8_t size;
 	};
-
-	int timing_byte = 0x0;
+#pragma pack(pop)
 
 	//struct brcm_hdr {
 	//	uint8_t cmd;
@@ -285,12 +287,8 @@ public:
 		unsigned char buf[0x40];
 		memset(buf, 0, 0x40);
 
-		uint8_t rumble_base[9] = { (++global_count) & 0xF, 0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40 };
+		uint8_t rumble_base[9] = { (global_count++ & 0xF), 0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40 };
 		memcpy(buf, rumble_base, 9);
-
-		if (global_count > 0xF) {
-			global_count = 0x0;
-		}
 
 		// set neutral rumble base only if the command is vibrate (0x01)
 		// if set when other commands are set, might cause the command to be misread and not executed
@@ -542,7 +540,7 @@ public:
 		memset(stick_cal_x_r, 0, sizeof(stick_cal_x_r));
 		memset(stick_cal_y_r, 0, sizeof(stick_cal_y_r));
 
-
+		// the maximum SPI data size at once is 0x1d
 		if (
 			get_spi_data(0x6020, 0x18, factory_sensor_cal) < 0
 			|| get_spi_data(0x603D, 0x12, factory_stick_cal) < 0
@@ -866,6 +864,29 @@ public:
 	}
 
 	// SPI (@CTCaer):
+	int waitfor_spi_data(uint8_t* buf, size_t len, uint32_t spi_offset, int milliseconds) {
+		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+		while (true) {
+			int res = hid_read_timeout(handle, buf, len, milliseconds);
+			if (res <= 0) {
+				return res;
+			}
+
+			if ((*(uint16_t*)&buf[0xD] == 0x1090) && (*(uint32_t*)&buf[0xF] == spi_offset)) {
+				return res;
+			}
+
+			// timeout
+			std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::high_resolution_clock::now() - start
+			);
+			if (duration.count() > milliseconds) {
+				break;
+			}
+		}
+
+		return 0;
+	}
 
 	int get_spi_data(uint32_t offset, const uint16_t read_len, uint8_t *test_buf) {
 		int res;
@@ -875,21 +896,11 @@ public:
 			auto hdr = (brcm_hdr *)buf;
 			auto pkt = (brcm_cmd_01 *)(hdr + 1);
 			hdr->cmd = 1;
-			hdr->rumble[0] = timing_byte;
+			hdr->rumble[0] = (global_count++ & 0x0f);
 
-			buf[1] = timing_byte;
-
-			timing_byte++;
-			if (timing_byte > 0xF) {
-				timing_byte = 0x0;
-			}
 			pkt->subcmd = 0x10;
 			pkt->offset = offset;
 			pkt->size = read_len;
-
-			for (int i = 11; i < 22; ++i) {
-				buf[i] = buf[i+3];
-			}
 
 			res = hid_write(handle, buf, sizeof(*hdr) + sizeof(*pkt));
 			if (res < 0) {
@@ -897,15 +908,15 @@ public:
 				return -1;
 			}
 
-			res = hid_read(handle, buf, sizeof(buf));
+			res = waitfor_spi_data(buf, sizeof(buf), offset, 100);
 			if (res < 0) {
 				printf("Failed to read spi command: %ls\n", hid_error(handle));
 				return -1;
 			}
-
-			if ((*(uint16_t*)&buf[0xD] == 0x1090) && (*(uint32_t*)&buf[0xF] == offset)) {
+			if (res > 0) {
 				break;
 			}
+			printf("Retrying...\n");
 		}
 		if (res >= 0x14 + read_len) {
 			for (int i = 0; i < read_len; i++) {
@@ -925,11 +936,7 @@ public:
 			auto hdr = (brcm_hdr *)buf;
 			auto pkt = (brcm_cmd_01 *)(hdr + 1);
 			hdr->cmd = 1;
-			hdr->rumble[0] = timing_byte;
-			timing_byte++;
-			if (timing_byte > 0xF) {
-				timing_byte = 0x0;
-			}
+			hdr->rumble[0] = (global_count++ & 0x0f);
 			pkt->subcmd = 0x11;
 			pkt->offset = offset;
 			pkt->size = write_len;
