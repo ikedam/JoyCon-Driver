@@ -479,6 +479,7 @@ public:
 	int init_bt() {
 
 		this->bluetooth = true;
+		this->global_count = 0;
 
 		unsigned char buf[0x40];
 		memset(buf, 0, 0x40);
@@ -506,21 +507,6 @@ public:
 			return -1;
 		}
 
-
-		// Set input report mode (to push at 60hz)
-		// x00	Active polling mode for IR camera data. Answers with more than 300 bytes ID 31 packet
-		// x01	Active polling mode
-		// x02	Active polling mode for IR camera data.Special IR mode or before configuring it ?
-		// x21	Unknown.An input report with this ID has pairing or mcu data or serial flash data or device info
-		// x23	MCU update input report ?
-		// 30	NPad standard mode. Pushes current state @60Hz. Default in SDK if arg is not in the list
-		// 31	NFC mode. Pushes large packets @60Hz
-		printf("Set input report mode to 0x30...\n");
-		buf[0] = 0x30;
-		if (send_subcommand(0x01, 0x03, buf, 1) < 0) {
-			printf("Failed to set mode: %ls\n", hid_error(this->handle));
-			return -1;
-		}
 
 		// @CTCaer
 
@@ -660,6 +646,21 @@ public:
 		gyro_cal_coeff[1] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][1])) * 0.01745329251994);
 		gyro_cal_coeff[2] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][2])) * 0.01745329251994);
 
+
+		// Set input report mode (to push at 60hz)
+		// x00	Active polling mode for IR camera data. Answers with more than 300 bytes ID 31 packet
+		// x01	Active polling mode
+		// x02	Active polling mode for IR camera data.Special IR mode or before configuring it ?
+		// x21	Unknown.An input report with this ID has pairing or mcu data or serial flash data or device info
+		// x23	MCU update input report ?
+		// 30	NPad standard mode. Pushes current state @60Hz. Default in SDK if arg is not in the list
+		// 31	NFC mode. Pushes large packets @60Hz
+		printf("Set input report mode to 0x30...\n");
+		buf[0] = 0x30;
+		if (send_subcommand(0x01, 0x03, buf, 1) < 0) {
+			printf("Failed to set mode: %ls\n", hid_error(this->handle));
+			return -1;
+		}
 
 		printf("Successfully initialized %s!\n", this->name.c_str());
 
@@ -892,6 +893,9 @@ public:
 		int res;
 		uint8_t buf[0x100];
 		while (1) {
+			// flush the queue
+			while (hid_read_timeout(handle, buf, sizeof(buf), 0) > 0);
+
 			memset(buf, 0, sizeof(buf));
 			auto hdr = (brcm_hdr *)buf;
 			auto pkt = (brcm_cmd_01 *)(hdr + 1);
