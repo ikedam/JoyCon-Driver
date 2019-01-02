@@ -648,16 +648,8 @@ public:
 
 
 		// Set input report mode (to push at 60hz)
-		// x00	Active polling mode for IR camera data. Answers with more than 300 bytes ID 31 packet
-		// x01	Active polling mode
-		// x02	Active polling mode for IR camera data.Special IR mode or before configuring it ?
-		// x21	Unknown.An input report with this ID has pairing or mcu data or serial flash data or device info
-		// x23	MCU update input report ?
-		// 30	NPad standard mode. Pushes current state @60Hz. Default in SDK if arg is not in the list
-		// 31	NFC mode. Pushes large packets @60Hz
 		printf("Set input report mode to 0x30...\n");
-		buf[0] = 0x30;
-		if (send_subcommand(0x01, 0x03, buf, 1) < 0) {
+		if (enter_push_mode() < 0) {
 			printf("Failed to set mode: %ls\n", hid_error(this->handle));
 			return -1;
 		}
@@ -1038,5 +1030,19 @@ public:
 		uint8_t buf[0x40];
 		buf[0] = 0x01 << (this->vJoyNumber - 1);
 		this->send_subcommand(0x01, 0x30, buf, 1);
+	}
+
+	int enter_push_mode() {
+		// Set input report mode (to push at 60hz)
+		// x00	Active polling mode for IR camera data. Answers with more than 300 bytes ID 31 packet
+		// x01	Active polling mode
+		// x02	Active polling mode for IR camera data.Special IR mode or before configuring it ?
+		// x21	Unknown.An input report with this ID has pairing or mcu data or serial flash data or device info
+		// x23	MCU update input report ?
+		// 30	NPad standard mode. Pushes current state @60Hz. Default in SDK if arg is not in the list
+		// 31	NFC mode. Pushes large packets @60Hz
+		uint8_t buf[0x40];
+		buf[0] = 0x30;
+		return send_subcommand(0x01, 0x03, buf, 1);
 	}
 };

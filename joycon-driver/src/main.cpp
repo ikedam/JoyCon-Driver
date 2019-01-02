@@ -1442,23 +1442,7 @@ init_start:
 	for (int r = 0; r < 5; ++r) {
 		for (int i = 0; i < joycons.size(); ++i) {
 			Joycon *jc = &joycons[i];
-			// Player LED Enable
-			memset(buf, 0x00, 0x40);
-			if (i == 0) {
-				buf[0] = 0x0 | 0x0 | 0x0 | 0x1;		// solid 1
-			}
-			if (i == 1) {
-				if (settings.combineJoyCons) {
-					buf[0] = 0x0 | 0x0 | 0x0 | 0x1; // solid 1
-				} else if (!settings.combineJoyCons) {
-					buf[0] = 0x0 | 0x0 | 0x2 | 0x0; // solid 2
-				}
-			}
-			//buf[0] = 0x80 | 0x40 | 0x2 | 0x1; // Flash top two, solid bottom two
-			//buf[0] = 0x8 | 0x4 | 0x2 | 0x1; // All solid
-			//buf[0] = 0x80 | 0x40 | 0x20 | 0x10; // All flashing
-			//buf[0] = 0x80 | 0x00 | 0x20 | 0x10; // All flashing except 3rd light (off)
-			jc->send_subcommand(0x01, 0x30, buf, 1);
+			jc->set_led();
 		}
 	}
 
