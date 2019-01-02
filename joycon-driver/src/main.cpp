@@ -2282,94 +2282,124 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse (c)
 	//this->Bind(wxEVT_CLOSE_WINDOW, &MainFrame::onQuit, this);
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrame::onQuit2));
 
-	CB1 = new wxCheckBox(panel, wxID_ANY, wxT("Combine JoyCons"), wxDLG_UNIT(this, wxPoint(12, 11)));
+	const int X_LETTER_WIDTH = 4;
+	const int X_LEFT_COL = 3 * X_LETTER_WIDTH;
+	const int X_RIGHT_COL = X_LEFT_COL + 18 * X_LETTER_WIDTH;
+	const int X_SLIDER_POS = X_LEFT_COL + 24 * X_LETTER_WIDTH;
+	const int X_SLIDER_WIDTH = 90;
+	const int X_BUTTON_LEFT = 10;
+	const int X_BUTTON_CENTER = 90;
+	const int X_BUTTON_RIGHT = 150;
+	const int Y_TOP = 11;
+	const int Y_LETTER_HEIGHT = 8;
+	const int Y_LINE_HEIGHT = Y_LETTER_HEIGHT + 3;
+
+	int y = Y_TOP;
+
+	CB1 = new wxCheckBox(panel, wxID_ANY, wxT("Combine JoyCons"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB1->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleCombine, this);
 	CB1->SetValue(settings.combineJoyCons);
 
-	CB6 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick X"), wxDLG_UNIT(this, wxPoint(12, 22)));
+	y += Y_LINE_HEIGHT;
+	CB6 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick X"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB6->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleReverseX, this);
 	CB6->SetValue(settings.reverseX);
-	CB7 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick Y"), wxDLG_UNIT(this, wxPoint(84, 22)));
+	CB7 = new wxCheckBox(panel, wxID_ANY, wxT("Reverse Stick Y"), wxDLG_UNIT(this, wxPoint(X_RIGHT_COL, y)));
 	CB7->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleReverseY, this);
 	CB7->SetValue(settings.reverseY);
 
-	gyroCheckBox = new wxCheckBox(panel, wxID_ANY, wxT("Gyro Controls"), wxDLG_UNIT(this, wxPoint(12, 33)));
+	y += Y_LINE_HEIGHT;
+	gyroCheckBox = new wxCheckBox(panel, wxID_ANY, wxT("Gyro Controls"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	gyroCheckBox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleGyro, this);
 	gyroCheckBox->SetValue(settings.enableGyro);
-
-	CB4 = new wxCheckBox(panel, wxID_ANY, wxT("Gyro Window"), wxDLG_UNIT(this, wxPoint(84, 33)));
+	CB4 = new wxCheckBox(panel, wxID_ANY, wxT("Gyro Window"), wxDLG_UNIT(this, wxPoint(X_RIGHT_COL, y)));
 	CB4->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleGyroWindow, this);
 	CB4->SetValue(settings.gyroWindow);
-	CB8 = new wxCheckBox(panel, wxID_ANY, wxT("Prefer Left JoyCon for Gyro Controls"), wxDLG_UNIT(this, wxPoint(12, 44)));
+
+	y += Y_LINE_HEIGHT;
+	CB8 = new wxCheckBox(panel, wxID_ANY, wxT("Prefer Left JoyCon for Gyro Controls"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB8->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::togglePreferLeftJoyCon, this);
 	CB8->SetValue(settings.preferLeftJoyCon);
-	CB12 = new wxCheckBox(panel, wxID_ANY, wxT("Quick Toggle Gyro Controls"), wxDLG_UNIT(this, wxPoint(12, 55)));
+
+	y += Y_LINE_HEIGHT;
+	CB12 = new wxCheckBox(panel, wxID_ANY, wxT("Quick Toggle Gyro Controls"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB12->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleQuickToggleGyro, this);
 	CB12->SetValue(settings.quickToggleGyro);
-	CB13 = new wxCheckBox(panel, wxID_ANY, wxT("Invert Quick Toggle"), wxDLG_UNIT(this, wxPoint(116, 55)));
+	CB13 = new wxCheckBox(panel, wxID_ANY, wxT("Invert Quick Toggle"), wxDLG_UNIT(this, wxPoint(116, y)));
 	CB13->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleInvertQuickToggle, this);
 	CB13->SetValue(settings.invertQuickToggle);
 
-	CB5 = new wxCheckBox(panel, wxID_ANY, wxT("Mario Theme"), wxDLG_UNIT(this, wxPoint(12, 66)));
+	y += Y_LINE_HEIGHT;
+	CB5 = new wxCheckBox(panel, wxID_ANY, wxT("Mario Theme"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB5->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleMario, this);
 	CB5->SetValue(settings.marioTheme);
-	CB14 = new wxCheckBox(panel, wxID_ANY, wxT("Dolphin Mode"), wxDLG_UNIT(this, wxPoint(84, 66)));
+	CB14 = new wxCheckBox(panel, wxID_ANY, wxT("Dolphin Mode"), wxDLG_UNIT(this, wxPoint(X_RIGHT_COL, y)));
 	CB14->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleDolphinPointerMode, this);
 	CB14->SetValue(settings.dolphinPointerMode);
 
-	CB9 = new wxCheckBox(panel, wxID_ANY, wxT("Debug Mode"), wxDLG_UNIT(this, wxPoint(12, 77)));
+	y += Y_LINE_HEIGHT;
+	CB9 = new wxCheckBox(panel, wxID_ANY, wxT("Debug Mode"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB9->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleDebugMode, this);
 	CB9->SetValue(settings.debugMode);
 
-	CB10 = new wxCheckBox(panel, wxID_ANY, wxT("Write Debug To File"), wxDLG_UNIT(this, wxPoint(84, 77)));
+	CB10 = new wxCheckBox(panel, wxID_ANY, wxT("Write Debug To File"), wxDLG_UNIT(this, wxPoint(X_RIGHT_COL, y)));
 	CB10->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleWriteDebug, this);
 	CB10->SetValue(settings.debugMode);
 
-	CB11 = new wxCheckBox(panel, wxID_ANY, wxT("Force Poll Update"), wxDLG_UNIT(this, wxPoint(12, 88)));
+	y += Y_LINE_HEIGHT;
+	CB11 = new wxCheckBox(panel, wxID_ANY, wxT("Force Poll Update"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB11->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleForcePoll, this);
 	CB11->SetValue(settings.forcePollUpdate);
 
-
-	slider1Text = new wxStaticText(panel, wxID_ANY, wxT("Gyro Controls Sensitivity X"), wxDLG_UNIT(this, wxPoint(12, 110)));
-	st1 = new wxStaticText(panel, wxID_ANY, wxT("(Also the sensitivity for Rz/sl0/sl1)"), wxDLG_UNIT(this, wxPoint(24, 121)));
-	slider1 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityX, -1000, 1000, wxDLG_UNIT(this, wxPoint(108, 102)), wxDLG_UNIT(this, wxSize(90, 11)), wxSL_LABELS);
-	slider1->Bind(wxEVT_SLIDER, &MainFrame::setGyroSensitivityX, this);
-
-
-	slider2Text = new wxStaticText(panel, wxID_ANY, wxT("Gyro Controls Sensitivity Y"), wxDLG_UNIT(this, wxPoint(12, 132)));
-	slider2 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityY, -1000, 1000, wxDLG_UNIT(this, wxPoint(108, 124)), wxDLG_UNIT(this, wxSize(90, 11)), wxSL_LABELS);
-	slider2->Bind(wxEVT_SLIDER, &MainFrame::setGyroSensitivityY, this);
-
-	CB15 = new wxCheckBox(panel, wxID_ANY, wxT("Broadcast Mode"), wxDLG_UNIT(this, wxPoint(84, 88)));
+	CB15 = new wxCheckBox(panel, wxID_ANY, wxT("Broadcast Mode"), wxDLG_UNIT(this, wxPoint(X_RIGHT_COL, y)));
 	CB15->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleBroadcastMode, this);
 	CB15->SetValue(settings.broadcastMode);
 
-	CB16 = new wxCheckBox(panel, wxID_ANY, wxT("Write Cast to File"), wxDLG_UNIT(this, wxPoint(12, 99)));
+	y += Y_LINE_HEIGHT;
+	CB16 = new wxCheckBox(panel, wxID_ANY, wxT("Write Cast to File"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB16->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleWriteCastToFile, this);
 	CB16->SetValue(settings.broadcastMode);
 
+	y += Y_LINE_HEIGHT;
+	slider1Text = new wxStaticText(panel, wxID_ANY, wxT("Gyro Controls Sensitivity X"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
+	st1 = new wxStaticText(panel, wxID_ANY, wxT("(Also the sensitivity for Rz/sl0/sl1)"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL + 3 * X_LETTER_WIDTH, y + Y_LINE_HEIGHT)));
+	slider1 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityX, -1000, 1000, wxDLG_UNIT(this, wxPoint(X_SLIDER_POS, y - Y_LETTER_HEIGHT)), wxDLG_UNIT(this, wxSize(X_SLIDER_WIDTH, Y_LINE_HEIGHT)), wxSL_LABELS);
+	slider1->Bind(wxEVT_SLIDER, &MainFrame::setGyroSensitivityX, this);
 
-	gyroComboCodeText = new wxStaticText(panel, wxID_ANY, wxT("Gyro Combo Code: "), wxDLG_UNIT(this, wxPoint(12, 148)));
 
-	st1 = new wxStaticText(panel, wxID_ANY, wxT("Change the default settings and more in the config file!"), wxDLG_UNIT(this, wxPoint(12, 165)));
+	y += 2 * Y_LINE_HEIGHT;
+	slider2Text = new wxStaticText(panel, wxID_ANY, wxT("Gyro Controls Sensitivity Y"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
+	slider2 = new wxSlider(panel, wxID_ANY, settings.gyroSensitivityY, -1000, 1000, wxDLG_UNIT(this, wxPoint(X_SLIDER_POS, y - Y_LETTER_HEIGHT)), wxDLG_UNIT(this, wxSize(X_SLIDER_WIDTH, Y_LINE_HEIGHT)), wxSL_LABELS);
+	slider2->Bind(wxEVT_SLIDER, &MainFrame::setGyroSensitivityY, this);
 
-	wxString version;
-	version.Printf("JoyCon-Driver version %s", settings.version);
-	st2 = new wxStaticText(panel, wxID_ANY, version, wxDLG_UNIT(this, wxPoint(12, 181)));
 
-	startButton = new wxButton(panel, wxID_EXIT, wxT("Start"), wxDLG_UNIT(this, wxPoint(90, 198)));
-	startButton->Bind(wxEVT_BUTTON, &MainFrame::onStart, this);
 
-	quitButton = new wxButton(panel, wxID_EXIT, wxT("Quit"), wxDLG_UNIT(this, wxPoint(150, 198)));
-	quitButton->Bind(wxEVT_BUTTON, &MainFrame::onQuit, this);
+	y += 2 * Y_LINE_HEIGHT;
+	gyroComboCodeText = new wxStaticText(panel, wxID_ANY, wxT("Gyro Combo Code: "), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y - 6)));
 
-	updateButton = new wxButton(panel, wxID_EXIT, wxT("Check for update"), wxDLG_UNIT(this, wxPoint(10, 198)));
-	updateButton->Bind(wxEVT_BUTTON, &MainFrame::onUpdate, this);
+	y += Y_LINE_HEIGHT;
+	st1 = new wxStaticText(panel, wxID_ANY, wxT("Change the default settings and more in the config file!"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 
-	donateButton = new wxButton(panel, wxID_EXIT, wxT("Donate"), wxDLG_UNIT(this, wxPoint(150, 178)));
+	y += Y_LINE_HEIGHT;
+	donateButton = new wxButton(panel, wxID_EXIT, wxT("Donate"), wxDLG_UNIT(this, wxPoint(X_BUTTON_RIGHT, y)));
 	donateButton->Bind(wxEVT_BUTTON, &MainFrame::onDonate, this);
 
-	SetClientSize(wxDLG_UNIT(this, wxSize(210, 220)));
+	y += Y_LINE_HEIGHT;
+	wxString version;
+	version.Printf("JoyCon-Driver version %s", settings.version);
+	st2 = new wxStaticText(panel, wxID_ANY, version, wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y - 6)));
+
+	y += Y_LINE_HEIGHT;
+	updateButton = new wxButton(panel, wxID_EXIT, wxT("Check for update"), wxDLG_UNIT(this, wxPoint(X_BUTTON_LEFT, y)));
+	updateButton->Bind(wxEVT_BUTTON, &MainFrame::onUpdate, this);
+
+	startButton = new wxButton(panel, wxID_EXIT, wxT("Start"), wxDLG_UNIT(this, wxPoint(X_BUTTON_CENTER, y)));
+	startButton->Bind(wxEVT_BUTTON, &MainFrame::onStart, this);
+
+	quitButton = new wxButton(panel, wxID_EXIT, wxT("Quit"), wxDLG_UNIT(this, wxPoint(X_BUTTON_RIGHT, y)));
+	quitButton->Bind(wxEVT_BUTTON, &MainFrame::onQuit, this);
+
+	SetClientSize(wxDLG_UNIT(this, wxSize(210, Y_LINE_HEIGHT * 20)));
 	Show();
 
 	// checkForUpdate();
