@@ -149,6 +149,7 @@ public:
 
 	void toggleGyro(wxCommandEvent&);
 	void toggleGyroWindow(wxCommandEvent &);
+	void toggleBatteryLed(wxCommandEvent& e);
 	void toggleMario(wxCommandEvent&);
 
 	void toggleReverseX(wxCommandEvent&);

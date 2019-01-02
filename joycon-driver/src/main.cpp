@@ -137,6 +137,9 @@ struct Settings {
 	// enables 3D gyroscope visualizer
 	bool gyroWindow = false;
 
+	// Use LED for battery indication.
+	bool batteryLed = false;
+
 	// plays a version of the mario theme by vibrating
 	// the first JoyCon connected.
 	bool marioTheme = false;
@@ -899,6 +902,8 @@ void parseSettings2() {
 	settings.gyroSensitivityX = stof(cfg["gyroSensitivityX"]);
 	settings.gyroSensitivityY = stof(cfg["gyroSensitivityY"]);
 
+	settings.batteryLed = (bool)stoi(cfg["batteryLed"]);
+
 	settings.gyroWindow = (bool)stoi(cfg["gyroWindow"]);
 	settings.marioTheme = (bool)stoi(cfg["marioTheme"]);
 
@@ -1026,6 +1031,9 @@ void pollLoop() {
 			std::chrono::high_resolution_clock::now() - tNow
 		);
 		jc->delay = static_cast<int>(duration.count());
+		if (settings.batteryLed) {
+			jc->set_led_by_battery();
+		}
 	}
 
 	// update vjoy:
@@ -1315,7 +1323,9 @@ bool DoDetection() {
 			error = true;
 			continue;
 		}
-		it->set_led();
+		if (!settings.batteryLed) {
+			it->set_led();
+		}
 		it->rumble(100, 1);
 		Sleep(20);
 		it->rumble(10, 3);
@@ -1467,7 +1477,11 @@ init_start:
 	for (int r = 0; r < 5; ++r) {
 		for (int i = 0; i < joycons.size(); ++i) {
 			Joycon *jc = &joycons[i];
-			jc->set_led();
+			if (settings.batteryLed) {
+				jc->set_led_by_battery();
+			} else {
+				jc->set_led();
+			}
 		}
 	}
 
@@ -2330,6 +2344,14 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse (c)
 	CB13->SetValue(settings.invertQuickToggle);
 
 	y += Y_LINE_HEIGHT;
+	{
+		wxCheckBox* pCheckbox = new wxCheckBox(panel, wxID_ANY, wxT("Batteries with LED"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
+
+		pCheckbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleBatteryLed, this);
+		pCheckbox->SetValue(settings.batteryLed);
+	}
+
+	y += Y_LINE_HEIGHT;
 	CB5 = new wxCheckBox(panel, wxID_ANY, wxT("Mario Theme"), wxDLG_UNIT(this, wxPoint(X_LEFT_COL, y)));
 	CB5->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &MainFrame::toggleMario, this);
 	CB5->SetValue(settings.marioTheme);
@@ -2399,7 +2421,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, wxT("JoyCon-Driver by fosse (c)
 	quitButton = new wxButton(panel, wxID_EXIT, wxT("Quit"), wxDLG_UNIT(this, wxPoint(X_BUTTON_RIGHT, y)));
 	quitButton->Bind(wxEVT_BUTTON, &MainFrame::onQuit, this);
 
-	SetClientSize(wxDLG_UNIT(this, wxSize(210, Y_LINE_HEIGHT * 20)));
+	SetClientSize(wxDLG_UNIT(this, wxSize(210, Y_LINE_HEIGHT * 21)));
 	Show();
 
 	// checkForUpdate();
@@ -2546,6 +2568,10 @@ void MainFrame::toggleGyro(wxCommandEvent&) {
 
 void MainFrame::toggleGyroWindow(wxCommandEvent&) {
 	settings.gyroWindow = !settings.gyroWindow;
+}
+
+void MainFrame::toggleBatteryLed(wxCommandEvent& e) {
+	settings.batteryLed = e.IsChecked();
 }
 
 void MainFrame::toggleMario(wxCommandEvent&) {

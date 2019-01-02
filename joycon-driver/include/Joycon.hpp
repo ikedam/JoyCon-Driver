@@ -184,6 +184,7 @@ public:
 	uint16_t stick_cal_y_r[0x3];
 	int delay;
 	std::chrono::high_resolution_clock::time_point last_received;
+	uint8_t led;
 
 
 public:
@@ -481,6 +482,7 @@ public:
 
 		this->bluetooth = true;
 		this->global_count = 0;
+		this->led = 0;
 
 		unsigned char buf[0x40];
 		memset(buf, 0, 0x40);
@@ -1022,15 +1024,38 @@ public:
 	//	return 0;
 	//}
 
+private:
+	void set_led_impl(uint8_t led) {
+		if (this->led == led) {
+			return;
+		}
+		this->led = led;
+		uint8_t buf[0x40];
+		buf[0] = this->led;
+		this->send_subcommand(0x01, 0x30, buf, 1);
+	}
+public:
 	// Player LED Enable
 	void set_led() {
 		if (!(1 <= this->vJoyNumber && this->vJoyNumber <= 4)) {
 			return;
 		}
 
-		uint8_t buf[0x40];
-		buf[0] = 0x01 << (this->vJoyNumber - 1);
-		this->send_subcommand(0x01, 0x30, buf, 1);
+		set_led_impl(0x01 << (this->vJoyNumber - 1));
+	}
+
+	// Player LED by battery
+	void set_led_by_battery() {
+		if (battery >= 8) {
+			set_led_impl(0x0f);
+		} else if (battery >= 6) {
+			set_led_impl(0x0e);
+		} else if (battery >= 4) {
+			set_led_impl(0x0c);
+		} else {
+			// alerm
+			set_led_impl(0x80);
+		}
 	}
 
 	int enter_push_mode() {
