@@ -312,53 +312,55 @@ bool handle_input(Joycon *jc, uint8_t *packet, int len) {
 		jc->battery = (packet[2] & 0xF0) >> 4;
 		//printf("JoyCon battery: %d\n", jc->battery);
 
-		// Accelerometer:
-		// Accelerometer data is absolute (m/s^2)
-		{
+		if (settings.enableGyro) {
+			// Accelerometer:
+			// Accelerometer data is absolute (m/s^2)
+			{
 
-			// get accelerometer X:
-			jc->accel.x = (float)(uint16_to_int16(packet[13] | (packet[14] << 8) & 0xFF00)) * jc->acc_cal_coeff[0];
+				// get accelerometer X:
+				jc->accel.x = (float)(uint16_to_int16(packet[13] | (packet[14] << 8) & 0xFF00)) * jc->acc_cal_coeff[0];
 
-			// get accelerometer Y:
-			jc->accel.y = (float)(uint16_to_int16(packet[15] | (packet[16] << 8) & 0xFF00)) * jc->acc_cal_coeff[1];
+				// get accelerometer Y:
+				jc->accel.y = (float)(uint16_to_int16(packet[15] | (packet[16] << 8) & 0xFF00)) * jc->acc_cal_coeff[1];
 
-			// get accelerometer Z:
-			jc->accel.z = (float)(uint16_to_int16(packet[17] | (packet[18] << 8) & 0xFF00)) * jc->acc_cal_coeff[2];
+				// get accelerometer Z:
+				jc->accel.z = (float)(uint16_to_int16(packet[17] | (packet[18] << 8) & 0xFF00)) * jc->acc_cal_coeff[2];
+			}
+
+
+
+			// Gyroscope:
+			// Gyroscope data is relative (rads/s)
+			{
+
+				// get roll:
+				jc->gyro.roll	= (float)((uint16_to_int16(packet[19] | (packet[20] << 8) & 0xFF00)) - jc->sensor_cal[1][0]) * jc->gyro_cal_coeff[0];
+
+				// get pitch:
+				jc->gyro.pitch	= (float)((uint16_to_int16(packet[21] | (packet[22] << 8) & 0xFF00)) - jc->sensor_cal[1][1]) * jc->gyro_cal_coeff[1];
+
+				// get yaw:
+				jc->gyro.yaw	= (float)((uint16_to_int16(packet[23] | (packet[24] << 8) & 0xFF00)) - jc->sensor_cal[1][2]) * jc->gyro_cal_coeff[2];
+			}
+
+			// offsets:
+			{
+				jc->setGyroOffsets();
+
+				jc->gyro.roll	-= jc->gyro.offset.roll;
+				jc->gyro.pitch	-= jc->gyro.offset.pitch;
+				jc->gyro.yaw	-= jc->gyro.offset.yaw;
+
+				//tracker.counter1++;
+				//if (tracker.counter1 > 10) {
+				//	tracker.counter1 = 0;
+				//	printf("%.3f %.3f %.3f\n", abs(jc->gyro.roll), abs(jc->gyro.pitch), abs(jc->gyro.yaw));
+				//}
+			}
+
+
+			//hex_dump(gyro_data, 20);
 		}
-
-
-
-		// Gyroscope:
-		// Gyroscope data is relative (rads/s)
-		{
-
-			// get roll:
-			jc->gyro.roll	= (float)((uint16_to_int16(packet[19] | (packet[20] << 8) & 0xFF00)) - jc->sensor_cal[1][0]) * jc->gyro_cal_coeff[0];
-
-			// get pitch:
-			jc->gyro.pitch	= (float)((uint16_to_int16(packet[21] | (packet[22] << 8) & 0xFF00)) - jc->sensor_cal[1][1]) * jc->gyro_cal_coeff[1];
-
-			// get yaw:
-			jc->gyro.yaw	= (float)((uint16_to_int16(packet[23] | (packet[24] << 8) & 0xFF00)) - jc->sensor_cal[1][2]) * jc->gyro_cal_coeff[2];
-		}
-
-		// offsets:
-		{
-			jc->setGyroOffsets();
-
-			jc->gyro.roll	-= jc->gyro.offset.roll;
-			jc->gyro.pitch	-= jc->gyro.offset.pitch;
-			jc->gyro.yaw	-= jc->gyro.offset.yaw;
-
-			//tracker.counter1++;
-			//if (tracker.counter1 > 10) {
-			//	tracker.counter1 = 0;
-			//	printf("%.3f %.3f %.3f\n", abs(jc->gyro.roll), abs(jc->gyro.pitch), abs(jc->gyro.yaw));
-			//}
-		}
-		
-
-		//hex_dump(gyro_data, 20);
 
 		if (jc->left_right == 1) {
 			//hex_dump(gyro_data, 20);
@@ -689,7 +691,10 @@ void updatevJoyDevice2(Joycon *jc) {
 
 
 	// gyro / accelerometer data:
-	if ((((jc->left_right == a) || (joycons.size() == 1 && jc->left_right == b) || (jc->left_right == 3)) && settings.combineJoyCons) || !settings.combineJoyCons) {
+	if (
+		settings.enableGyro
+		&& ((((jc->left_right == a) || (joycons.size() == 1 && jc->left_right == b) || (jc->left_right == 3)) && settings.combineJoyCons) || !settings.combineJoyCons)
+	) {
 
 		int multiplier;
 
@@ -1274,6 +1279,7 @@ bool DoDetection() {
 		if (it == joycons.end()) {
 			// Found a new one!
 			Joycon jc = Joycon(cur_dev);
+			jc.set_imu(settings.enableGyro);
 			if (jc.left_right == 1) {
 				jc.vJoyNumber = ++lcounter;
 				jc.deviceNumber = 0;
@@ -1396,12 +1402,14 @@ init_start:
 			// bluetooth, left / right joycon:
 			if (cur_dev->product_id == JOYCON_L_BT || cur_dev->product_id == JOYCON_R_BT) {
 				Joycon jc = Joycon(cur_dev);
+				jc.set_imu(settings.enableGyro);
 				joycons.push_back(jc);
 			}
 
 			// pro controller:
 			if (cur_dev->product_id == PRO_CONTROLLER) {
 				Joycon jc = Joycon(cur_dev);
+				jc.set_imu(settings.enableGyro);
 				joycons.push_back(jc);
 			}
 

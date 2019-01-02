@@ -185,12 +185,15 @@ public:
 	int delay;
 	std::chrono::high_resolution_clock::time_point last_received;
 	uint8_t led;
+	bool enable_imu;
 
 
 public:
 
 
-	Joycon(struct hid_device_info *dev) {
+	Joycon(struct hid_device_info *dev)
+		: enable_imu(false)
+	{
 
 		if (dev->product_id == JOYCON_CHARGING_GRIP) {
 
@@ -503,11 +506,13 @@ public:
 		}
 
 		// Enable IMU data
-		printf("Enabling IMU data...\n");
-		buf[0] = 0x01; // Enabled
-		if (send_subcommand(0x01, 0x40, buf, 1) < 0) {
-			printf("Failed to enable IMU data: %ls\n", hid_error(this->handle));
-			return -1;
+		if (enable_imu) {
+			printf("Enabling IMU data...\n");
+			buf[0] = 0x01; // Enabled
+			if (send_subcommand(0x01, 0x40, buf, 1) < 0) {
+				printf("Failed to enable IMU data: %ls\n", hid_error(this->handle));
+				return -1;
+			}
 		}
 
 
@@ -531,13 +536,13 @@ public:
 
 		// the maximum SPI data size at once is 0x1d
 		if (
-			get_spi_data(0x6020, 0x18, factory_sensor_cal) < 0
+			(enable_imu && get_spi_data(0x6020, 0x18, factory_sensor_cal) < 0)
 			|| get_spi_data(0x603D, 0x12, factory_stick_cal) < 0
-			|| get_spi_data(0x6080, 0x6, sensor_model) < 0
+			|| (enable_imu && get_spi_data(0x6080, 0x6, sensor_model) < 0)
 			|| get_spi_data(0x6086, 0x12, stick_model) < 0
 			|| get_spi_data(0x6098, 0x12, &stick_model[0x12]) < 0
 			|| get_spi_data(0x8010, 0x16, user_stick_cal) < 0
-			|| get_spi_data(0x8026, 0x1A, user_sensor_cal) < 0
+			|| (enable_imu && get_spi_data(0x8026, 0x1A, user_sensor_cal) < 0)
 		) {
 			printf("Failed to get calibrations: %ls\n", hid_error(this->handle));
 			return -1;
@@ -598,57 +603,58 @@ public:
 		}
 
 		// get gyro / accelerometer calibration data:
+		if (enable_imu) {
 
-		// factory calibration:
+			// factory calibration:
 
-		// Acc cal origin position
-		sensor_cal[0][0] = uint16_to_int16(factory_sensor_cal[0] | factory_sensor_cal[1] << 8);
-		sensor_cal[0][1] = uint16_to_int16(factory_sensor_cal[2] | factory_sensor_cal[3] << 8);
-		sensor_cal[0][2] = uint16_to_int16(factory_sensor_cal[4] | factory_sensor_cal[5] << 8);
-
-		// Gyro cal origin position
-		sensor_cal[1][0] = uint16_to_int16(factory_sensor_cal[0xC] | factory_sensor_cal[0xD] << 8);
-		sensor_cal[1][1] = uint16_to_int16(factory_sensor_cal[0xE] | factory_sensor_cal[0xF] << 8);
-		sensor_cal[1][2] = uint16_to_int16(factory_sensor_cal[0x10] | factory_sensor_cal[0x11] << 8);
-
-		// user calibration:
-		if ((user_sensor_cal[0x0] | user_sensor_cal[0x1] << 8) == 0xA1B2) {
-			//FormJoy::myform1->textBox_6axis_ucal->Text = L"6-Axis User (XYZ):\r\nAcc:  ";
-			//for (int i = 0; i < 0xC; i = i + 6) {
-			//	FormJoy::myform1->textBox_6axis_ucal->Text += String::Format(L"{0:X4} {1:X4} {2:X4}\r\n      ",
-			//		user_sensor_cal[i + 2] | user_sensor_cal[i + 3] << 8,
-			//		user_sensor_cal[i + 4] | user_sensor_cal[i + 5] << 8,
-			//		user_sensor_cal[i + 6] | user_sensor_cal[i + 7] << 8);
-			//}
 			// Acc cal origin position
-			sensor_cal[0][0] = uint16_to_int16(user_sensor_cal[2] | user_sensor_cal[3] << 8);
-			sensor_cal[0][1] = uint16_to_int16(user_sensor_cal[4] | user_sensor_cal[5] << 8);
-			sensor_cal[0][2] = uint16_to_int16(user_sensor_cal[6] | user_sensor_cal[7] << 8);
-			//FormJoy::myform1->textBox_6axis_ucal->Text += L"\r\nGyro: ";
-			//for (int i = 0xC; i < 0x18; i = i + 6) {
-			//	FormJoy::myform1->textBox_6axis_ucal->Text += String::Format(L"{0:X4} {1:X4} {2:X4}\r\n      ",
-			//		user_sensor_cal[i + 2] | user_sensor_cal[i + 3] << 8,
-			//		user_sensor_cal[i + 4] | user_sensor_cal[i + 5] << 8,
-			//		user_sensor_cal[i + 6] | user_sensor_cal[i + 7] << 8);
-			//}
+			sensor_cal[0][0] = uint16_to_int16(factory_sensor_cal[0] | factory_sensor_cal[1] << 8);
+			sensor_cal[0][1] = uint16_to_int16(factory_sensor_cal[2] | factory_sensor_cal[3] << 8);
+			sensor_cal[0][2] = uint16_to_int16(factory_sensor_cal[4] | factory_sensor_cal[5] << 8);
+
 			// Gyro cal origin position
-			sensor_cal[1][0] = uint16_to_int16(user_sensor_cal[0xE] | user_sensor_cal[0xF] << 8);
-			sensor_cal[1][1] = uint16_to_int16(user_sensor_cal[0x10] | user_sensor_cal[0x11] << 8);
-			sensor_cal[1][2] = uint16_to_int16(user_sensor_cal[0x12] | user_sensor_cal[0x13] << 8);
-		} else {
-			//FormJoy::myform1->textBox_6axis_ucal->Text = L"\r\n\r\nUser:\r\nNo calibration";
+			sensor_cal[1][0] = uint16_to_int16(factory_sensor_cal[0xC] | factory_sensor_cal[0xD] << 8);
+			sensor_cal[1][1] = uint16_to_int16(factory_sensor_cal[0xE] | factory_sensor_cal[0xF] << 8);
+			sensor_cal[1][2] = uint16_to_int16(factory_sensor_cal[0x10] | factory_sensor_cal[0x11] << 8);
+
+			// user calibration:
+			if ((user_sensor_cal[0x0] | user_sensor_cal[0x1] << 8) == 0xA1B2) {
+				//FormJoy::myform1->textBox_6axis_ucal->Text = L"6-Axis User (XYZ):\r\nAcc:  ";
+				//for (int i = 0; i < 0xC; i = i + 6) {
+				//	FormJoy::myform1->textBox_6axis_ucal->Text += String::Format(L"{0:X4} {1:X4} {2:X4}\r\n      ",
+				//		user_sensor_cal[i + 2] | user_sensor_cal[i + 3] << 8,
+				//		user_sensor_cal[i + 4] | user_sensor_cal[i + 5] << 8,
+				//		user_sensor_cal[i + 6] | user_sensor_cal[i + 7] << 8);
+				//}
+				// Acc cal origin position
+				sensor_cal[0][0] = uint16_to_int16(user_sensor_cal[2] | user_sensor_cal[3] << 8);
+				sensor_cal[0][1] = uint16_to_int16(user_sensor_cal[4] | user_sensor_cal[5] << 8);
+				sensor_cal[0][2] = uint16_to_int16(user_sensor_cal[6] | user_sensor_cal[7] << 8);
+				//FormJoy::myform1->textBox_6axis_ucal->Text += L"\r\nGyro: ";
+				//for (int i = 0xC; i < 0x18; i = i + 6) {
+				//	FormJoy::myform1->textBox_6axis_ucal->Text += String::Format(L"{0:X4} {1:X4} {2:X4}\r\n      ",
+				//		user_sensor_cal[i + 2] | user_sensor_cal[i + 3] << 8,
+				//		user_sensor_cal[i + 4] | user_sensor_cal[i + 5] << 8,
+				//		user_sensor_cal[i + 6] | user_sensor_cal[i + 7] << 8);
+				//}
+				// Gyro cal origin position
+				sensor_cal[1][0] = uint16_to_int16(user_sensor_cal[0xE] | user_sensor_cal[0xF] << 8);
+				sensor_cal[1][1] = uint16_to_int16(user_sensor_cal[0x10] | user_sensor_cal[0x11] << 8);
+				sensor_cal[1][2] = uint16_to_int16(user_sensor_cal[0x12] | user_sensor_cal[0x13] << 8);
+			} else {
+				//FormJoy::myform1->textBox_6axis_ucal->Text = L"\r\n\r\nUser:\r\nNo calibration";
+			}
+
+			// Use SPI calibration and convert them to SI acc unit
+			acc_cal_coeff[0] = (float)(1.0 / (float)(16384 - uint16_to_int16(sensor_cal[0][0]))) * 4.0f  * 9.8f;
+			acc_cal_coeff[1] = (float)(1.0 / (float)(16384 - uint16_to_int16(sensor_cal[0][1]))) * 4.0f  * 9.8f;
+			acc_cal_coeff[2] = (float)(1.0 / (float)(16384 - uint16_to_int16(sensor_cal[0][2]))) * 4.0f  * 9.8f;
+
+			// Use SPI calibration and convert them to SI gyro unit
+			gyro_cal_coeff[0] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][0])) * 0.01745329251994);
+			gyro_cal_coeff[1] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][1])) * 0.01745329251994);
+			gyro_cal_coeff[2] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][2])) * 0.01745329251994);
 		}
-
-		// Use SPI calibration and convert them to SI acc unit
-		acc_cal_coeff[0] = (float)(1.0 / (float)(16384 - uint16_to_int16(sensor_cal[0][0]))) * 4.0f  * 9.8f;
-		acc_cal_coeff[1] = (float)(1.0 / (float)(16384 - uint16_to_int16(sensor_cal[0][1]))) * 4.0f  * 9.8f;
-		acc_cal_coeff[2] = (float)(1.0 / (float)(16384 - uint16_to_int16(sensor_cal[0][2]))) * 4.0f  * 9.8f;
-
-		// Use SPI calibration and convert them to SI gyro unit
-		gyro_cal_coeff[0] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][0])) * 0.01745329251994);
-		gyro_cal_coeff[1] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][1])) * 0.01745329251994);
-		gyro_cal_coeff[2] = (float)(936.0 / (float)(13371 - uint16_to_int16(sensor_cal[1][2])) * 0.01745329251994);
-
 
 		// Set input report mode (to push at 60hz)
 		printf("Set input report mode to 0x30...\n");
@@ -1074,5 +1080,9 @@ public:
 			last_received = std::chrono::high_resolution_clock::now();
 		}
 		return ret;
+	}
+
+	void set_imu(bool imu) {
+		this->enable_imu = imu;
 	}
 };
