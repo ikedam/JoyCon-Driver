@@ -183,6 +183,7 @@ public:
 	uint16_t stick_cal_x_r[0x3];
 	uint16_t stick_cal_y_r[0x3];
 	int delay;
+	std::chrono::high_resolution_clock::time_point last_received;
 
 
 public:
@@ -1043,6 +1044,10 @@ public:
 		// 31	NFC mode. Pushes large packets @60Hz
 		uint8_t buf[0x40];
 		buf[0] = 0x30;
-		return send_subcommand(0x01, 0x03, buf, 1);
+		int ret = send_subcommand(0x01, 0x03, buf, 1);
+		if (ret >= 0) {
+			last_received = std::chrono::high_resolution_clock::now();
+		}
+		return ret;
 	}
 };

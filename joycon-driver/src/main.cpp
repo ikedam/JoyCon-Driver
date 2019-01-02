@@ -213,7 +213,8 @@ struct Tracker {
 
 
 
-void handle_input(Joycon *jc, uint8_t *packet, int len) {
+bool handle_input(Joycon *jc, uint8_t *packet, int len) {
+	bool valid = false;
 
 	// bluetooth button pressed packet:
 	if (packet[0] == 0x3F) {
@@ -228,6 +229,7 @@ void handle_input(Joycon *jc, uint8_t *packet, int len) {
 	// input update packet:
 	// 0x21 is just buttons, 0x30 includes gyro, 0x31 includes NFC (large packet size)
 	if (packet[0] == 0x21 || packet[0] == 0x30 || packet[0] == 0x31) {
+		valid = true;
 		
 		// offset for usb or bluetooth data:
 		/*int offset = settings.usingBluetooth ? 0 : 10;*/
@@ -532,6 +534,7 @@ void handle_input(Joycon *jc, uint8_t *packet, int len) {
 		}
 
 	}
+	return valid;
 }
 
 
@@ -969,7 +972,7 @@ void pollLoop() {
 
 		//hid_read(jc->handle, buf, 0x40);
 		int read = hid_read_timeout(jc->handle, buf, 0x40, 20);
-		if (read == -1) {
+		if (read < 0) {
 			printf("\nOops! Lost joycon %c: %ls\n", L_OR_R(jc->left_right), jc->serial);
 			hid_close(jc->handle);
 			jc->handle = nullptr;
@@ -980,6 +983,15 @@ void pollLoop() {
 			}
 			continue;
 		} else if (read < 0x40) {
+			// Somehow joycon sometimes exit push mode.
+			// Reset if no packet for long time
+			std::chrono::milliseconds inactive = std::chrono::duration_cast<std::chrono::milliseconds>(
+				tNow - jc->last_received
+			);
+			if (inactive.count() > 1000) {
+				printf("\nNo packets for long time and joycon(%c) gets inactive. Reactivate.\n", L_OR_R(jc->left_right));
+				jc->enter_push_mode();
+			}
 			continue;
 		}
 
@@ -995,7 +1007,20 @@ void pollLoop() {
 		//	hid_read(jc->handle, buf, 0x40);
 		//}
 
-		handle_input(jc, buf, 0x40);
+		if (handle_input(jc, buf, 0x40)) {
+			jc->last_received = tNow;
+		} else {
+			// Somehow joycon sometimes exit push mode.
+			// Reset if no packet for long time
+			std::chrono::milliseconds inactive = std::chrono::duration_cast<std::chrono::milliseconds>(
+				tNow - jc->last_received
+				);
+			if (inactive.count() > 1000) {
+				printf("\nNo valid packets for long time and joycon(%c) gets inactive. Reactivate.\n", L_OR_R(jc->left_right));
+				jc->enter_push_mode();
+			}
+			continue;
+		}
 
 		std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(
 			std::chrono::high_resolution_clock::now() - tNow
