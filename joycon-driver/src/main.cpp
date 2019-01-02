@@ -2834,7 +2834,7 @@ void MyTaskBarIcon::SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery
 			if ((lbattery & 0x01) == 0) {
 				if (lbattery <= 2) {
 					// force notify
-					m_lastBatteryNotification = 0;
+					m_lastBatteryNotification = std::chrono::high_resolution_clock::time_point();
 				}
 			} else {
 				if ((m_lbattery & 0x01) == 0) {
@@ -2847,7 +2847,7 @@ void MyTaskBarIcon::SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery
 			if ((rbattery & 0x01) == 0) {
 				if (rbattery <= 2) {
 					// force notify
-					m_lastBatteryNotification = 0;
+					m_lastBatteryNotification = std::chrono::high_resolution_clock::time_point();
 				}
 			} else {
 				if ((m_rbattery & 0x01) == 0) {
@@ -2873,8 +2873,11 @@ void MyTaskBarIcon::NotifyIfBatteryIsLow() {
 	if (!llow && !rlow) {
 		return;
 	}
-	long now = wxGetUTCTime();
-	if ((now - m_lastBatteryNotification) < 600) {
+	std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+	std::chrono::seconds intervalSec = std::chrono::duration_cast<std::chrono::seconds>(
+		now - m_lastBatteryNotification
+	);
+	if (intervalSec.count() < 300) {
 		return;
 	}
 	m_lastBatteryNotification = now;

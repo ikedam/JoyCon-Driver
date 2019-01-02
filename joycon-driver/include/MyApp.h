@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include <wx/glcanvas.h>
 #include <wx/taskbar.h>
 #include <wx/wx.h>
@@ -205,7 +207,7 @@ public:
 		: wxTaskBarIcon()
 		, m_pParent(pParent)
 		, m_notification(false)
-		, m_lastBatteryNotification(0)
+		, m_lastBatteryNotification()
 	{}
 
 	void StartNotification();
@@ -230,7 +232,7 @@ private:
 	int m_rcounter;
 	uint8_t m_lbattery;
 	uint8_t m_rbattery;
-	long m_lastBatteryNotification;
+	std::chrono::high_resolution_clock::time_point m_lastBatteryNotification;
 
 	enum {
 		MENUID_GAME_CONTROLLER = 10001,
