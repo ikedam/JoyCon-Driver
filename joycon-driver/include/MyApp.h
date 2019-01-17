@@ -220,6 +220,7 @@ protected:
 	void OnMenuOpen(wxCommandEvent& event);
 	void OnMenuExit(wxCommandEvent& event);
 	void OnMenuGameController(wxCommandEvent& event);
+	void OnMenuBluetooth(wxCommandEvent& event);
 
 	wxDECLARE_EVENT_TABLE();
 private:
@@ -235,6 +236,7 @@ private:
 
 	enum {
 		MENUID_GAME_CONTROLLER = 10001,
+		MENUID_BLUETOOTH = 10002,
 	};
 
 	void NotifyInfo(const wxString& message);

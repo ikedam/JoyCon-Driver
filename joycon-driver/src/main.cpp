@@ -2815,12 +2815,14 @@ wxBEGIN_EVENT_TABLE(MyTaskBarIcon, wxTaskBarIcon)
 	EVT_MENU(wxID_OPEN, MyTaskBarIcon::OnMenuOpen)
 	EVT_MENU(wxID_EXIT, MyTaskBarIcon::OnMenuExit)
 	EVT_MENU(MENUID_GAME_CONTROLLER, MyTaskBarIcon::OnMenuGameController)
+	EVT_MENU(MENUID_BLUETOOTH, MyTaskBarIcon::OnMenuBluetooth)
 wxEND_EVENT_TABLE()
 
 wxMenu* MyTaskBarIcon::CreatePopupMenu() {
 	wxMenu* pMenu = new wxMenu();
 	pMenu->Append(wxID_OPEN, wxT("&Open Console"));
 	pMenu->Append(MENUID_GAME_CONTROLLER, wxT("&Game Controllers"));
+	pMenu->Append(MENUID_BLUETOOTH, wxT("&Bluetooth"));
 	pMenu->Append(wxID_EXIT, wxT("&Exit"));
 	::SetMenuDefaultItem(pMenu->GetHMenu(), 0, TRUE);
 	return pMenu;
@@ -2843,6 +2845,10 @@ void MyTaskBarIcon::OnMenuExit(wxCommandEvent& event) {
 
 void MyTaskBarIcon::OnMenuGameController(wxCommandEvent& event) {
 	wxExecute(wxT("control joy.cpl"));
+}
+
+void MyTaskBarIcon::OnMenuBluetooth(wxCommandEvent& event) {
+	wxExecute(wxT("control bthprops.cpl"));
 }
 
 void MyTaskBarIcon::SetTitle(const wxString &title) {
