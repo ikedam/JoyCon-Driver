@@ -71,8 +71,6 @@ public:
 
 	virtual int OnExit();
 
-	void onIdle(wxIdleEvent &evt);
-
 	// Returns the shared context used by all frames and sets it as current for
 	// the given canvas.
 	TestGLContext& GetContext(wxGLCanvas *canvas, bool useStereo);

@@ -2238,7 +2238,6 @@ bool MyApp::OnInit() {
 		return false;
 	}
 
-	Connect(wxID_ANY, wxEVT_IDLE, wxIdleEventHandler(MyApp::onIdle));
 	auto mainFrame = new MainFrame();
 
 	if (settings.autoStart) {
@@ -2258,12 +2257,6 @@ int MyApp::OnExit() {
 	actuallyQuit();
 
 	return wxApp::OnExit();
-}
-
-void MyApp::onIdle(wxIdleEvent& evt) {
-	if (started) {
-		pollLoop();
-	}
 }
 
 TestGLContext& MyApp::GetContext(wxGLCanvas *canvas, bool useStereo) {
