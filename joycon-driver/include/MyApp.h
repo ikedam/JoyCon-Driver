@@ -207,13 +207,24 @@ public:
 		, m_pParent(pParent)
 		, m_notification(false)
 		, m_lastBatteryNotification()
+		, m_lbodycolor({ 0 })
+		, m_lbuttonscolor({ 0 })
+		, m_rbodycolor({ 0 })
+		, m_rbuttonscolor({ 0 })
+		, m_colorupdate(false)
+		, m_iconBuffer(nullptr)
 	{}
+
+	virtual ~MyTaskBarIcon();
 
 	void StartNotification();
 	void SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery, uint8_t rbattery);
+	void SetJoyConColors(RGBQUAD lbodycolor, RGBQUAD lbuttonscolor, RGBQUAD rbodycolor, RGBQUAD rbuttonscolor);
 	void SetTitle(const wxString& title);
 	const wxString GetTooltip() const;
 	virtual bool SetIcon(const wxIcon &icon, const wxString& tooltip=wxEmptyString);
+	void InitIcon(int resourceId);
+	void UpdateIcon();
 protected:
 	virtual wxMenu* CreatePopupMenu();
 	void OnDoubleClick(wxTaskBarIconEvent& event);
@@ -233,6 +244,16 @@ private:
 	uint8_t m_lbattery;
 	uint8_t m_rbattery;
 	std::chrono::high_resolution_clock::time_point m_lastBatteryNotification;
+
+	PBYTE m_iconBuffer;
+	size_t m_iconBufferSize;
+	RGBQUAD* m_palettes;
+
+	RGBQUAD m_lbodycolor;
+	RGBQUAD m_lbuttonscolor;
+	RGBQUAD m_rbodycolor;
+	RGBQUAD m_rbuttonscolor;
+	bool m_colorupdate;
 
 	enum {
 		MENUID_GAME_CONTROLLER = 10001,

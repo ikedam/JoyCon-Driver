@@ -101,6 +101,20 @@ public:
 		float z = 0;
 	} accel;
 
+#pragma pack(push, 1)
+	struct Color {
+		uint8_t r;
+		uint8_t g;
+		uint8_t b;
+	};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+	struct BodyAndButtonColors {
+		Color body;
+		Color buttons;
+	};
+#pragma pack(pop)
 
 	// calibration data:
 #pragma pack(push, 1)
@@ -186,6 +200,7 @@ public:
 	std::chrono::high_resolution_clock::time_point last_received;
 	uint8_t led;
 	bool enable_imu;
+	BodyAndButtonColors colors;
 
 
 public:
@@ -538,6 +553,7 @@ public:
 		if (
 			(enable_imu && get_spi_data(0x6020, 0x18, factory_sensor_cal) < 0)
 			|| get_spi_data(0x603D, 0x12, factory_stick_cal) < 0
+			|| get_spi_data(0x6050, 0x6, reinterpret_cast<uint8_t*>(&this->colors)) < 0
 			|| (enable_imu && get_spi_data(0x6080, 0x6, sensor_model) < 0)
 			|| get_spi_data(0x6086, 0x12, stick_model) < 0
 			|| get_spi_data(0x6098, 0x12, &stick_model[0x12]) < 0

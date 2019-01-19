@@ -76,6 +76,10 @@ bool started = false;
 std::chrono::high_resolution_clock::time_point lastDetection;
 uint8_t lbattery = 0;
 uint8_t rbattery = 0;
+RGBQUAD lbodycolor = { 0 };
+RGBQUAD lbuttonscolor = { 0 };
+RGBQUAD rbodycolor = { 0 };
+RGBQUAD rbuttonscolor = { 0 };
 
 // sio:
 sio::client myClient;
@@ -1204,13 +1208,46 @@ void pollLoop() {
 		}
 	}
 
-	// store battery status
+	// store battery and color status
 	// (really ad-hoc implementation)
+	lbattery = 0;
+	rbattery = 0;
+	lbodycolor = { 0 };
+	lbuttonscolor = { 0 };
+	rbodycolor = { 0 };
+	rbuttonscolor = { 0 };
 	for (int i = 0; i < joycons.size(); ++i) {
+		if (joycons[i].handle == NULL) {
+			continue;
+		}
 		if (joycons[i].left_right == 1) {
 			lbattery = joycons[i].battery;
+			lbodycolor = {
+				joycons[i].colors.body.b,
+				joycons[i].colors.body.g,
+				joycons[i].colors.body.r,
+				0,
+			};
+			lbuttonscolor = {
+				joycons[i].colors.buttons.b,
+				joycons[i].colors.buttons.g,
+				joycons[i].colors.buttons.r,
+				0,
+			};
 		} else if (joycons[i].left_right == 2) {
 			rbattery = joycons[i].battery;
+			rbodycolor = {
+				joycons[i].colors.body.b,
+				joycons[i].colors.body.g,
+				joycons[i].colors.body.r,
+				0,
+			};
+			rbuttonscolor = {
+				joycons[i].colors.buttons.b,
+				joycons[i].colors.buttons.g,
+				joycons[i].colors.buttons.r,
+				0,
+			};
 		}
 	}
 	// Status
@@ -2445,7 +2482,9 @@ void MainFrame::onStart(wxCommandEvent&) {
 	taskBarIcon = new MyTaskBarIcon(this);
 	taskBarIcon->SetTitle(GetTitle());
 	taskBarIcon->SetIcon(GetIcon());
+	taskBarIcon->InitIcon(IDI_COLOR);
 	taskBarIcon->SetJoyConStatus(lcounter, rcounter, lbattery, rbattery);
+	taskBarIcon->SetJoyConColors(lbodycolor, lbuttonscolor, rbodycolor, rbuttonscolor);
 	hideConsole();
 	taskBarIcon->StartNotification();
 
@@ -2460,6 +2499,7 @@ void MainFrame::onStart(wxCommandEvent&) {
 void MainFrame::DoWork() {
 	pollLoop();
 	taskBarIcon->SetJoyConStatus(lcounter, rcounter, lbattery, rbattery);
+	taskBarIcon->SetJoyConColors(lbodycolor, lbuttonscolor, rbodycolor, rbuttonscolor);
 }
 
 void MainFrame::onQuit(wxCommandEvent&) {
@@ -2851,6 +2891,13 @@ void MyTaskBarIcon::OnMenuBluetooth(wxCommandEvent& event) {
 	wxExecute(wxT("control bthprops.cpl"));
 }
 
+MyTaskBarIcon::~MyTaskBarIcon() {
+	if (m_iconBuffer) {
+		delete[] m_iconBuffer;
+		m_iconBuffer = nullptr;
+	}
+}
+
 void MyTaskBarIcon::SetTitle(const wxString &title) {
 	m_title = title;
 }
@@ -2861,7 +2908,82 @@ const wxString MyTaskBarIcon::GetTooltip() const {
 
 bool MyTaskBarIcon::SetIcon(const wxIcon &icon, const wxString &tooltip) {
 	m_icon = icon;
-	return wxTaskBarIcon::SetIcon(icon, GetTooltip());
+	return wxTaskBarIcon::SetIcon(m_icon, GetTooltip());
+}
+
+void MyTaskBarIcon::InitIcon(int resourceId) {
+	HRSRC hIconGroupRsrc = ::FindResource(NULL, MAKEINTRESOURCE(resourceId), RT_GROUP_ICON);
+	if (hIconGroupRsrc == NULL) {
+		return;
+	}
+	HGLOBAL hIconGroup = ::LoadResource(NULL, hIconGroupRsrc);
+	if (hIconGroup == NULL) {
+		return;
+	}
+	LPVOID pIconGroup = ::LockResource(hIconGroup);
+	if (pIconGroup == NULL) {
+		return;
+	}
+	int iconWidth = ::GetSystemMetrics(SM_CXICON);
+	int iconHeight = ::GetSystemMetrics(SM_CYICON);
+	int iconId = ::LookupIconIdFromDirectoryEx(reinterpret_cast<PBYTE>(pIconGroup), TRUE, iconWidth, iconHeight, LR_DEFAULTCOLOR);
+	if (iconId == 0) {
+		return;
+	}
+	HRSRC hIconRsrc = ::FindResource(NULL, MAKEINTRESOURCE(iconId), RT_ICON);
+	if (hIconRsrc == NULL) {
+		return;
+	}
+	HGLOBAL hIconData = ::LoadResource(NULL, hIconRsrc);
+	if (hIconData == NULL) {
+		return;
+	}
+	DWORD size = ::SizeofResource(NULL, hIconRsrc);
+	uint8_t* pIcon = reinterpret_cast<uint8_t*>(::LockResource(hIconData));
+	if (pIcon == NULL) {
+		return;
+	}
+
+	const BITMAPINFOHEADER* pHeader = reinterpret_cast<const BITMAPINFOHEADER*>(pIcon);
+	int paletteNum = pHeader->biClrUsed;
+	if (paletteNum == 0 && pHeader->biBitCount <= 8) {
+		paletteNum = 0x01 << pHeader->biBitCount;
+	}
+	if (paletteNum == 0) {
+		return;
+	}
+
+	m_iconBuffer = new uint8_t[size];
+	m_iconBufferSize = size;
+	std::memcpy(m_iconBuffer, pIcon, m_iconBufferSize);
+
+	m_palettes = reinterpret_cast<RGBQUAD*>(m_iconBuffer + pHeader->biSize);
+
+	m_colorupdate = true;
+	UpdateIcon();
+}
+
+void MyTaskBarIcon::UpdateIcon() {
+	if (!m_iconBuffer) {
+		return;
+	}
+	if (!m_colorupdate) {
+		return;
+	}
+	m_colorupdate = false;
+
+	m_palettes[0] = m_lbodycolor;
+	m_palettes[1] = m_lbuttonscolor;
+	m_palettes[2] = m_rbodycolor;
+	m_palettes[3] = m_rbuttonscolor;
+
+	HICON hIcon = ::CreateIconFromResource(m_iconBuffer, m_iconBufferSize, TRUE, 0x00030000);
+	if (hIcon == NULL) {
+		return;
+	}
+	wxIcon icon;
+	icon.CreateFromHICON(hIcon);
+	SetIcon(icon);
 }
 
 void MyTaskBarIcon::NotifyInfo(const wxString& message) {
@@ -2936,6 +3058,29 @@ void MyTaskBarIcon::SetJoyConStatus(int lcounter, int rcounter, uint8_t lbattery
 	if (m_notification) {
 		NotifyIfBatteryIsLow();
 	}
+}
+
+namespace {
+	bool operator==(const RGBQUAD& l, const RGBQUAD& r) {
+		return *reinterpret_cast<const uint32_t*>(&l) == *reinterpret_cast<const uint32_t*>(&r);
+	}
+}
+
+void MyTaskBarIcon::SetJoyConColors(RGBQUAD lbodycolor, RGBQUAD lbuttonscolor, RGBQUAD rbodycolor, RGBQUAD rbuttonscolor) {
+	if (
+		m_lbodycolor == lbodycolor
+		&& m_lbuttonscolor == lbuttonscolor
+		&& m_rbodycolor == rbodycolor
+		&& m_rbuttonscolor == rbuttonscolor
+	) {
+		return;
+	}
+	m_lbodycolor = lbodycolor;
+	m_lbuttonscolor = lbuttonscolor;
+	m_rbodycolor = rbodycolor;
+	m_rbuttonscolor = rbuttonscolor;
+	m_colorupdate = true;
+	UpdateIcon();
 }
 
 void MyTaskBarIcon::NotifyIfBatteryIsLow() {
