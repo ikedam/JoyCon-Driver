@@ -54,6 +54,7 @@
     <ResourceCompile Include="resource\Resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resource\color.ico" />
     <Image Include="resource\main.ico" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

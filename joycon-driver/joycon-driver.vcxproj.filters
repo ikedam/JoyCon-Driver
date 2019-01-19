@@ -111,5 +111,8 @@
     <Image Include="resource\main.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resource\color.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
